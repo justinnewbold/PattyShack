@@ -1,0 +1,300 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PattyShack - Restaurant Operations Platform</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: #333;
+            min-height: 100vh;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+        
+        header {
+            background: white;
+            border-radius: 12px;
+            padding: 2rem;
+            margin-bottom: 2rem;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+        }
+        
+        h1 {
+            color: #667eea;
+            font-size: 2.5rem;
+            margin-bottom: 0.5rem;
+        }
+        
+        .tagline {
+            color: #666;
+            font-size: 1.2rem;
+        }
+        
+        .dashboard {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+        
+        .card {
+            background: white;
+            border-radius: 12px;
+            padding: 1.5rem;
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+            transition: transform 0.3s, box-shadow 0.3s;
+        }
+        
+        .card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+        }
+        
+        .card h3 {
+            color: #667eea;
+            margin-bottom: 1rem;
+            font-size: 1.3rem;
+        }
+        
+        .card p {
+            color: #666;
+            line-height: 1.6;
+        }
+        
+        .features {
+            background: white;
+            border-radius: 12px;
+            padding: 2rem;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+        }
+        
+        .features h2 {
+            color: #667eea;
+            margin-bottom: 1.5rem;
+            font-size: 2rem;
+        }
+        
+        .feature-list {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 1.5rem;
+        }
+        
+        .feature-item {
+            padding: 1rem;
+            border-left: 4px solid #667eea;
+            background: #f8f9ff;
+        }
+        
+        .feature-item h4 {
+            color: #333;
+            margin-bottom: 0.5rem;
+        }
+        
+        .feature-item ul {
+            list-style: none;
+            padding-left: 0;
+        }
+        
+        .feature-item li {
+            padding: 0.3rem 0;
+            color: #666;
+        }
+        
+        .feature-item li::before {
+            content: "✓ ";
+            color: #667eea;
+            font-weight: bold;
+            margin-right: 0.5rem;
+        }
+        
+        .api-info {
+            background: #2d3748;
+            color: white;
+            border-radius: 12px;
+            padding: 2rem;
+            margin-top: 2rem;
+            font-family: 'Courier New', monospace;
+        }
+        
+        .api-info h3 {
+            color: #667eea;
+            margin-bottom: 1rem;
+        }
+        
+        .api-info code {
+            background: #1a202c;
+            padding: 0.5rem 1rem;
+            border-radius: 6px;
+            display: block;
+            margin: 0.5rem 0;
+            overflow-x: auto;
+        }
+        
+        footer {
+            text-align: center;
+            padding: 2rem;
+            color: white;
+            margin-top: 2rem;
+        }
+        
+        .status {
+            display: inline-block;
+            width: 10px;
+            height: 10px;
+            background: #48bb78;
+            border-radius: 50%;
+            margin-right: 0.5rem;
+            animation: pulse 2s infinite;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🍔 PattyShack</h1>
+            <p class="tagline">Restaurant Operations Platform</p>
+            <p style="margin-top: 1rem;">
+                <span class="status"></span>
+                <span style="color: #48bb78; font-weight: 600;">System Operational</span>
+            </p>
+        </header>
+        
+        <div class="dashboard">
+            <div class="card">
+                <h3>📋 Task Management</h3>
+                <p>Digital checklists, recurring tasks, and real-time progress tracking across all locations.</p>
+            </div>
+            
+            <div class="card">
+                <h3>🌡️ Temperature Monitoring</h3>
+                <p>HACCP-compliant temperature logging with IoT sensor integration and real-time alerts.</p>
+            </div>
+            
+            <div class="card">
+                <h3>📦 Inventory Control</h3>
+                <p>Real-time inventory tracking, barcode scanning, and waste management with cost analysis.</p>
+            </div>
+            
+            <div class="card">
+                <h3>👥 Staff Scheduling</h3>
+                <p>Shift scheduling, time tracking, and labor forecasting with compliance checks.</p>
+            </div>
+            
+            <div class="card">
+                <h3>📊 Analytics & Reports</h3>
+                <p>Real-time dashboards, KPIs, and AI-driven insights for performance optimization.</p>
+            </div>
+            
+            <div class="card">
+                <h3>🏢 Multi-Location</h3>
+                <p>Hierarchical organization from store to brand level with centralized control.</p>
+            </div>
+        </div>
+        
+        <div class="features">
+            <h2>Platform Features</h2>
+            <div class="feature-list">
+                <div class="feature-item">
+                    <h4>Core Operations</h4>
+                    <ul>
+                        <li>Digital checklists & SOPs</li>
+                        <li>Assignable tasks with verification</li>
+                        <li>Recurring task automation</li>
+                        <li>Corrective action workflows</li>
+                        <li>Offline mode support</li>
+                    </ul>
+                </div>
+                
+                <div class="feature-item">
+                    <h4>Temperature & Equipment</h4>
+                    <ul>
+                        <li>Wireless sensor integration</li>
+                        <li>Real-time alert system</li>
+                        <li>HACCP compliance logs</li>
+                        <li>Trend analysis & charts</li>
+                        <li>Predictive maintenance</li>
+                    </ul>
+                </div>
+                
+                <div class="feature-item">
+                    <h4>Inventory & Purchasing</h4>
+                    <ul>
+                        <li>Barcode scanning</li>
+                        <li>Recipe-level tracking</li>
+                        <li>Actual vs Theoretical variance</li>
+                        <li>Vendor management</li>
+                        <li>AI-powered invoice OCR</li>
+                    </ul>
+                </div>
+                
+                <div class="feature-item">
+                    <h4>Labor & Scheduling</h4>
+                    <ul>
+                        <li>Drag-and-drop schedules</li>
+                        <li>Mobile clock-in/out</li>
+                        <li>Labor forecasting</li>
+                        <li>Compliance checking</li>
+                        <li>Geofencing support</li>
+                    </ul>
+                </div>
+                
+                <div class="feature-item">
+                    <h4>Analytics & Reporting</h4>
+                    <ul>
+                        <li>Real-time dashboards</li>
+                        <li>Custom report builder</li>
+                        <li>Multi-location comparison</li>
+                        <li>AI anomaly detection</li>
+                        <li>BI tool integration</li>
+                    </ul>
+                </div>
+                
+                <div class="feature-item">
+                    <h4>Enterprise Features</h4>
+                    <ul>
+                        <li>Multi-brand support</li>
+                        <li>Role-based access control</li>
+                        <li>API & webhook support</li>
+                        <li>SSO integration</li>
+                        <li>Cloud-hosted & scalable</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+        
+        <div class="api-info">
+            <h3>API Quick Start</h3>
+            <p>Access the PattyShack API to integrate with your systems:</p>
+            <code>GET http://localhost:3000/api/v1/tasks</code>
+            <code>GET http://localhost:3000/api/v1/temperatures</code>
+            <code>GET http://localhost:3000/api/v1/inventory</code>
+            <code>GET http://localhost:3000/api/v1/analytics/dashboard</code>
+            <p style="margin-top: 1rem;">View full API documentation: <a href="/docs/API.md" style="color: #667eea;">API Docs</a></p>
+        </div>
+        
+        <footer>
+            <p>&copy; 2024 PattyShack. All rights reserved.</p>
+            <p>Restaurant Operations Platform v1.0.0</p>
+        </footer>
+    </div>
+</body>
+</html>
