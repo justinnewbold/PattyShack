@@ -46,7 +46,8 @@ A comprehensive restaurant operations platform for multi-location management, pr
 - 👥 Labor vs sales variance monitoring
 - 📈 Labor forecasting with AI
 - 📉 KPI widgets and drill-down analysis
-- 🏆 Multi-location benchmarking
+- 🏆 Multi-location benchmarking with automated rankings
+- 📍 Location-aware dashboards with task compliance, labor, food cost, and waste insights
 - 🔔 AI-driven anomaly alerts
 
 ### Staff Scheduling & Attendance

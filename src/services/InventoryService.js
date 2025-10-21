@@ -79,6 +79,10 @@ class InventoryService {
     return item;
   }
 
+  getItemById(id) {
+    return this.items.get(id) || null;
+  }
+
   async getInventory(filters = {}) {
     const { locationId, category, lowStock } = filters;
 

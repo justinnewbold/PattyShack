@@ -206,14 +206,128 @@ Real-time dashboards, KPIs, and performance metrics.
 GET /analytics/dashboard?locationId={id}&period=7d
 ```
 
+**Response**
+```json
+{
+  "success": true,
+  "data": {
+    "period": {
+      "label": "Last 7 Days",
+      "start": "2024-01-01T00:00:00.000Z",
+      "end": "2024-01-08T00:00:00.000Z"
+    },
+    "kpis": {
+      "sales": { "current": 15400, "previous": 14800, "change": 4.05 },
+      "foodCost": { "current": 4600, "target": 4620, "variance": -0.43 },
+      "laborCost": {
+        "current": 3850,
+        "target": 3850,
+        "variance": 0,
+        "laborPercent": 25,
+        "previousPercent": 26.4
+      },
+      "waste": {
+        "current": 215,
+        "previous": 260,
+        "change": -17.3,
+        "topReasons": [
+          { "reason": "prep_error", "value": 120 },
+          { "reason": "spoilage", "value": 95 }
+        ]
+      },
+      "compliance": {
+        "score": 92,
+        "tasks": { "completed": 23, "total": 25, "overdue": 1 },
+        "trend": "up"
+      }
+    },
+    "charts": {
+      "salesTrend": [
+        { "date": "2024-01-01", "sales": 2100, "laborCost": 520 },
+        { "date": "2024-01-02", "sales": 2300, "laborCost": 540 }
+      ],
+      "laborVsSales": [
+        { "scheduleId": "sched-100", "date": "2024-01-01", "laborCost": 520, "sales": 2100 }
+      ],
+      "wasteByCategory": [
+        { "category": "protein", "value": 150 },
+        { "category": "bakery", "value": 65 }
+      ],
+      "temperatureCompliance": { "complianceRate": 96.4, "totalReadings": 28, "outOfRange": 1 }
+    }
+  }
+}
+```
+
 #### Location Comparison
 ```http
 GET /analytics/locations?metric=compliance&period=30d
 ```
 
+**Response**
+```json
+{
+  "success": true,
+  "data": {
+    "metric": "compliance",
+    "period": {
+      "label": "Last 30 Days",
+      "start": "2023-12-10T00:00:00.000Z",
+      "end": "2024-01-09T00:00:00.000Z"
+    },
+    "locations": [
+      { "locationId": "store-100", "value": 94, "previousValue": 90, "change": 4.44, "rank": 1 },
+      { "locationId": "store-200", "value": 87, "previousValue": 88, "change": -1.14, "rank": 2 }
+    ],
+    "benchmark": {
+      "average": 90.5,
+      "topPerformer": { "locationId": "store-100", "value": 94 },
+      "bottomPerformer": { "locationId": "store-200", "value": 87 }
+    }
+  }
+}
+```
+
 #### Generate Report
 ```http
 GET /analytics/reports/{type}?locationId={id}&startDate={start}&endDate={end}
+```
+
+**Response**
+```json
+{
+  "success": true,
+  "data": {
+    "reportType": "operations",
+    "generatedAt": "2024-02-01T15:30:00.000Z",
+    "filters": {
+      "locationId": "store-100",
+      "startDate": "2024-01-01T00:00:00.000Z",
+      "endDate": "2024-02-01T00:00:00.000Z"
+    },
+    "exportUrl": null,
+    "data": {
+      "title": "Operations Summary",
+      "compliance": {
+        "score": 92,
+        "previousScore": 89,
+        "tasks": { "completed": 45, "total": 49, "overdue": 2 }
+      },
+      "alerts": {
+        "alerts": [
+          { "id": "alert-1", "type": "temperature", "severity": "critical" },
+          { "id": "inventory-item-100", "type": "inventory", "severity": "warning" }
+        ],
+        "summary": { "critical": 1, "warning": 1, "info": 0 }
+      },
+      "taskBreakdown": {
+        "total": 49,
+        "byStatus": { "completed": 45, "pending": 3, "in_progress": 1 },
+        "byType": { "safety": 20, "ops": 29 }
+      }
+    }
+  }
+}
 ```
 
 ### 6. Location Management
