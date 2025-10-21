@@ -59,9 +59,45 @@ Content-Type: application/json
 ```
 
 ### 2. Temperature Monitoring
-HACCP-compliant temperature logging with IoT sensor integration.
+HACCP-compliant temperature logging with IoT sensor integration, threshold enforcement, and alerting.
+
+#### List Temperature Logs
+Returns all temperature readings for a location or piece of equipment along with roll-up statistics.
+
+```http
+GET /temperatures?locationId={id}&equipmentId={id}&startDate={iso}&endDate={iso}
+```
+
+**Response**
+```json
+{
+  "success": true,
+  "data": {
+    "logs": [
+      {
+        "id": 1705432339000,
+        "locationId": 1,
+        "equipmentId": "FRIDGE-01",
+        "equipmentType": "fridge",
+        "temperature": 38,
+        "source": "iot_sensor",
+        "recordedAt": "2024-01-15T13:12:19.000Z",
+        "threshold": { "min": 33, "max": 41 },
+        "isInRange": true
+      }
+    ],
+    "statistics": {
+      "totalReadings": 42,
+      "outOfRange": 1,
+      "averageTemp": 37.6
+    }
+  }
+}
+```
 
 #### Log Temperature
+Adds a manual or IoT sensor reading, auto-validating it against the configured thresholds and generating alerts if out of range.
+
 ```http
 POST /temperatures
 Content-Type: application/json
@@ -69,16 +105,25 @@ Content-Type: application/json
 {
   "locationId": 1,
   "equipmentId": "FRIDGE-01",
-  "equipmentType": "refrigerator",
+  "equipmentType": "fridge",
   "temperature": 38,
-  "unit": "F",
-  "source": "iot_sensor"
+  "source": "iot_sensor",
+  "recordedAt": "2024-01-15T13:12:19Z"
 }
 ```
 
 #### Get Temperature Alerts
+Summaries live, acknowledged, and resolved alerts with optional location filtering.
+
 ```http
 GET /temperatures/alerts?locationId={id}&status={status}
+```
+
+#### Get Equipment History
+Returns a trend analysis and latest reading for an individual piece of equipment.
+
+```http
+GET /temperatures/equipment/{equipmentId}?period=24h
 ```
 
 ### 3. Inventory Management
