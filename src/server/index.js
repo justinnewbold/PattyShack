@@ -22,6 +22,7 @@ app.use(express.static(path.join(__dirname, '../../public')));
 const tasksRouter = require('../routes/tasks');
 const temperaturesRouter = require('../routes/temperatures');
 const inventoryRouter = require('../routes/inventory');
+const invoicesRouter = require('../routes/invoices');
 const schedulesRouter = require('../routes/schedules');
 const analyticsRouter = require('../routes/analytics');
 const locationsRouter = require('../routes/locations');
@@ -29,6 +30,7 @@ const locationsRouter = require('../routes/locations');
 app.use(`${config.apiPrefix}/tasks`, tasksRouter);
 app.use(`${config.apiPrefix}/temperatures`, temperaturesRouter);
 app.use(`${config.apiPrefix}/inventory`, inventoryRouter);
+app.use(`${config.apiPrefix}/invoices`, invoicesRouter);
 app.use(`${config.apiPrefix}/schedules`, schedulesRouter);
 app.use(`${config.apiPrefix}/analytics`, analyticsRouter);
 app.use(`${config.apiPrefix}/locations`, locationsRouter);
@@ -77,6 +79,7 @@ Available endpoints:
   - GET  ${config.apiPrefix}/tasks
   - GET  ${config.apiPrefix}/temperatures
   - GET  ${config.apiPrefix}/inventory
+  - GET  ${config.apiPrefix}/invoices
   - GET  ${config.apiPrefix}/schedules
   - GET  ${config.apiPrefix}/analytics
   - GET  ${config.apiPrefix}/locations

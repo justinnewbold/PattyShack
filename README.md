@@ -160,6 +160,17 @@ POST   /api/v1/inventory/waste    # Log waste
 GET    /api/v1/inventory/variance # Get variance report
 ```
 
+#### Invoices
+```bash
+GET    /api/v1/invoices              # List invoices
+POST   /api/v1/invoices              # Capture new invoice
+GET    /api/v1/invoices/:id          # Get invoice details
+PUT    /api/v1/invoices/:id          # Update invoice
+POST   /api/v1/invoices/:id/approve  # Approve invoice
+POST   /api/v1/invoices/:id/reconcile # Reconcile invoice
+POST   /api/v1/invoices/:id/ocr      # Record OCR data
+```
+
 #### Scheduling
 ```bash
 GET    /api/v1/schedules              # List schedules
