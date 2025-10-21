@@ -12,7 +12,7 @@ class TaskService {
     const task = {
       id: Date.now(),
       ...taskData,
-      status: 'pending',
+      status: taskData.status || 'pending',
       createdAt: new Date(),
       updatedAt: new Date()
     };
@@ -29,10 +29,10 @@ class TaskService {
 
   async getTasks(filters = {}) {
     let tasks = Array.from(this.tasks.values());
-    
+
     // Apply filters
     if (filters.locationId) {
-      tasks = tasks.filter(t => t.locationId === filters.locationId);
+      tasks = tasks.filter(t => String(t.locationId) === String(filters.locationId));
     }
     if (filters.status) {
       tasks = tasks.filter(t => t.status === filters.status);
@@ -41,9 +41,13 @@ class TaskService {
       tasks = tasks.filter(t => t.type === filters.type);
     }
     if (filters.assignedTo) {
-      tasks = tasks.filter(t => t.assignedTo === filters.assignedTo);
+      tasks = tasks.filter(t => String(t.assignedTo) === String(filters.assignedTo));
     }
-    
+    if (filters.dueDate) {
+      const dueDate = new Date(filters.dueDate);
+      tasks = tasks.filter(t => t.dueDate && new Date(t.dueDate).toDateString() === dueDate.toDateString());
+    }
+
     return tasks;
   }
 
@@ -92,6 +96,34 @@ class TaskService {
 
   async deleteTask(id) {
     return this.tasks.delete(parseInt(id));
+  }
+
+  async getSummary(filters = {}) {
+    const tasks = await this.getTasks(filters);
+
+    const summary = {
+      total: tasks.length,
+      byStatus: {},
+      byType: {},
+      overdue: 0
+    };
+
+    const now = new Date();
+
+    tasks.forEach(task => {
+      summary.byStatus[task.status] = (summary.byStatus[task.status] || 0) + 1;
+      summary.byType[task.type] = (summary.byType[task.type] || 0) + 1;
+
+      if (
+        task.status !== 'completed' &&
+        task.dueDate &&
+        new Date(task.dueDate) < now
+      ) {
+        summary.overdue += 1;
+      }
+    });
+
+    return summary;
   }
 
   scheduleRecurringTask(task) {
