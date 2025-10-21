@@ -61,10 +61,10 @@ const validators = {
 
   // Required fields validation
   hasRequiredFields(data, requiredFields) {
-    return requiredFields.every(field => 
-      data.hasOwnProperty(field) && 
-      data[field] !== null && 
-      data[field] !== undefined && 
+    return requiredFields.every(field =>
+      data.hasOwnProperty(field) &&
+      data[field] !== null &&
+      data[field] !== undefined &&
       data[field] !== ''
     );
   },
@@ -73,6 +73,47 @@ const validators = {
   sanitizeString(str) {
     if (typeof str !== 'string') return '';
     return str.trim().replace(/[<>]/g, '');
+  },
+
+  // Schedule status validation
+  isValidScheduleStatus(status) {
+    const validStatuses = ['scheduled', 'confirmed', 'in_progress', 'completed', 'no_show', 'open'];
+    return validStatuses.includes(status);
+  },
+
+  // Time string validation (HH:MM)
+  isValidTimeString(time) {
+    if (typeof time !== 'string') return false;
+    const normalized = time.trim();
+    const timeRegex = /^([01]\d|2[0-3]):([0-5]\d)$/;
+    return timeRegex.test(normalized);
+  },
+
+  // Time range validation (start before end)
+  isValidTimeRange(start, end) {
+    if (!this.isValidTimeString(start) || !this.isValidTimeString(end)) {
+      return false;
+    }
+
+    const [startHour, startMinute] = start.split(':').map(Number);
+    const [endHour, endMinute] = end.split(':').map(Number);
+    const startMinutes = startHour * 60 + startMinute;
+    const endMinutes = endHour * 60 + endMinute;
+
+    return startMinutes < endMinutes;
+  },
+
+  // Non-negative number validation
+  isNonNegativeNumber(value) {
+    const num = Number(value);
+    return Number.isFinite(num) && num >= 0;
+  },
+
+  // Duration validation (minutes)
+  isValidDuration(minutes, { min = 0, max = 24 * 60 } = {}) {
+    const value = Number(minutes);
+    if (!Number.isFinite(value)) return false;
+    return value >= min && value <= max;
   }
 };
 

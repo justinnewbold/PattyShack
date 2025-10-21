@@ -20,6 +20,7 @@ class Schedule {
     this.actualHours = data.actualHours || 0;
     this.scheduledHours = data.scheduledHours || 0;
     this.laborCost = data.laborCost || 0;
+    this.hourlyRate = data.hourlyRate || 0;
     this.approvedBy = data.approvedBy;
     this.notes = data.notes || '';
     this.metadata = data.metadata || {};
@@ -38,6 +39,9 @@ class Schedule {
     this.clockOutTime = new Date();
     this.status = 'completed';
     this.actualHours = this.calculateActualHours();
+    if (this.hourlyRate) {
+      this.laborCost = Math.round(this.actualHours * this.hourlyRate * 100) / 100;
+    }
     this.updatedAt = new Date();
   }
 
