@@ -1,351 +1,392 @@
 /**
  * Invoice Service
- * Provides in-memory invoice capture, OCR simulation, and reconciliation workflows.
+ * Business logic for invoice capture, OCR simulation, and reconciliation workflows.
  */
 
-const Invoice = require('../models/Invoice');
+const { getPool } = require('../database/pool');
 
 class InvoiceService {
   constructor() {
-    this.invoices = new Map();
-    this.seedDemoData();
-  }
-
-  seedDemoData() {
-    const demoInvoices = [
-      {
-        id: 'inv-100',
-        locationId: 'store-100',
-        vendorId: 'vendor-501',
-        invoiceNumber: 'PS-2024-001',
-        invoiceDate: this.parseDate('2024-01-05'),
-        dueDate: this.parseDate('2024-01-20'),
-        status: 'pending',
-        tax: 12.5,
-        ocrProcessed: true,
-        ocrConfidence: 0.92,
-        lineItems: [
-          { description: 'Ground Beef 80/20', quantity: 80, unitPrice: 3.3, glCode: '5000' },
-          { description: 'Sesame Buns (12ct)', quantity: 30, unitPrice: 12.5, glCode: '5005' }
-        ],
-        metadata: {
-          deliveryDate: '2024-01-05T12:00:00Z',
-          purchaseOrder: 'PO-8891'
-        }
-      },
-      {
-        id: 'inv-101',
-        locationId: 'store-200',
-        vendorId: 'vendor-640',
-        invoiceNumber: 'PS-2024-014',
-        invoiceDate: this.parseDate('2023-12-18'),
-        dueDate: this.parseDate('2024-01-02'),
-        status: 'approved',
-        tax: 8.25,
-        approvedBy: 'manager-201',
-        approvedAt: new Date('2023-12-19T15:20:00Z'),
-        ocrProcessed: true,
-        ocrConfidence: 0.88,
-        lineItems: [
-          { description: 'American Cheese Slices', quantity: 20, unitPrice: 21.95, glCode: '5010' },
-          { description: 'Pickle Chips', quantity: 10, unitPrice: 14.5, glCode: '5012' }
-        ],
-        metadata: {
-          deliveryDate: '2023-12-18T09:30:00Z',
-          purchaseOrder: 'PO-8732'
-        }
-      },
-      {
-        id: 'inv-102',
-        locationId: 'store-100',
-        vendorId: 'vendor-501',
-        invoiceNumber: 'PS-2023-230',
-        invoiceDate: this.parseDate('2023-11-28'),
-        dueDate: this.parseDate('2023-12-08'),
-        status: 'paid',
-        tax: 6.1,
-        paidAt: new Date('2023-12-06T11:10:00Z'),
-        paymentMethod: 'ach',
-        lineItems: [
-          { description: 'Paper Goods Assorted', quantity: 15, unitPrice: 18.2, glCode: '5050' }
-        ],
-        metadata: {
-          deliveryDate: '2023-11-28T08:45:00Z',
-          purchaseOrder: 'PO-8502'
-        }
-      }
-    ];
-
-    demoInvoices.forEach(invoice => {
-      this.createInvoice(invoice);
-    });
+    // Database-backed service
   }
 
   async createInvoice(data) {
-    const invoice = new Invoice({
-      ...data,
+    const pool = getPool();
+
+    const lineItems = this.normalizeLineItems(data.lineItems);
+    const subtotal = lineItems.reduce((sum, item) => sum + (item.total || 0), 0);
+    const tax = this.toNumber(data.tax, 0);
+    const total = subtotal + tax;
+
+    const invoice = {
       id: String(data.id || this.generateId()),
-      locationId: data.locationId,
-      vendorId: data.vendorId,
-      invoiceNumber: data.invoiceNumber,
-      invoiceDate: this.parseDate(data.invoiceDate) || new Date(),
-      dueDate: this.parseDate(data.dueDate),
+      location_id: data.locationId,
+      vendor_id: data.vendorId || null,
+      invoice_number: data.invoiceNumber,
+      invoice_date: this.parseDate(data.invoiceDate) || new Date(),
+      due_date: this.parseDate(data.dueDate) || null,
+      subtotal,
+      tax,
+      total,
       status: this.normalizeStatus(data.status),
-      tax: this.toNumber(data.tax, 0),
-      subtotal: 0,
-      lineItems: this.normalizeLineItems(data.lineItems),
-      attachments: Array.isArray(data.attachments) ? [...data.attachments] : [],
-      ocrProcessed: Boolean(data.ocrProcessed),
-      ocrConfidence: this.toNumber(data.ocrConfidence, 0),
-      metadata: this.normalizeMetadata(data.metadata)
-    });
+      line_items: JSON.stringify(lineItems),
+      attachments: JSON.stringify(data.attachments || []),
+      ocr_processed: Boolean(data.ocrProcessed),
+      ocr_confidence: this.toNumber(data.ocrConfidence, 0),
+      gl_code: data.glCode || null,
+      approved_by: data.approvedBy || null,
+      approved_at: this.parseDate(data.approvedAt) || null,
+      paid_at: this.parseDate(data.paidAt) || null,
+      payment_method: data.paymentMethod || null,
+      reconciled: Boolean(data.reconciled),
+      reconciled_with: data.reconciledWith || null,
+      notes: data.notes || null,
+      metadata: JSON.stringify(data.metadata || {})
+    };
 
-    invoice.recalculateTotals();
-    invoice.createdAt = new Date();
-    invoice.updatedAt = new Date();
+    const result = await pool.query(`
+      INSERT INTO invoices (
+        id, location_id, vendor_id, invoice_number, invoice_date, due_date,
+        subtotal, tax, total, status, line_items, attachments, ocr_processed,
+        ocr_confidence, gl_code, approved_by, approved_at, paid_at,
+        payment_method, reconciled, reconciled_with, notes, metadata
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23)
+      RETURNING *
+    `, [
+      invoice.id, invoice.location_id, invoice.vendor_id, invoice.invoice_number,
+      invoice.invoice_date, invoice.due_date, invoice.subtotal, invoice.tax,
+      invoice.total, invoice.status, invoice.line_items, invoice.attachments,
+      invoice.ocr_processed, invoice.ocr_confidence, invoice.gl_code,
+      invoice.approved_by, invoice.approved_at, invoice.paid_at,
+      invoice.payment_method, invoice.reconciled, invoice.reconciled_with,
+      invoice.notes, invoice.metadata
+    ]);
 
-    this.invoices.set(invoice.id, invoice);
-    return this.serializeInvoice(invoice);
+    return this.formatInvoice(result.rows[0]);
   }
 
   async getInvoices(filters = {}) {
-    const {
-      locationId,
-      vendorId,
-      status,
-      startDate,
-      endDate,
-      search
-    } = filters;
+    const pool = getPool();
+    const { locationId, vendorId, status, startDate, endDate, search } = filters;
 
-    let invoices = Array.from(this.invoices.values());
+    let query = 'SELECT * FROM invoices WHERE 1=1';
+    const params = [];
+    let paramIndex = 1;
 
     if (locationId) {
-      invoices = invoices.filter(invoice => invoice.locationId === String(locationId));
+      query += ` AND location_id = $${paramIndex++}`;
+      params.push(String(locationId));
     }
 
     if (vendorId) {
-      invoices = invoices.filter(invoice => invoice.vendorId === String(vendorId));
+      query += ` AND vendor_id = $${paramIndex++}`;
+      params.push(String(vendorId));
     }
 
     if (status) {
-      const normalizedStatus = String(status).toLowerCase();
-      invoices = invoices.filter(invoice => invoice.status === normalizedStatus);
+      query += ` AND status = $${paramIndex++}`;
+      params.push(String(status).toLowerCase());
     }
 
     if (startDate) {
-      const start = this.parseDate(startDate);
-      if (start) {
-        invoices = invoices.filter(invoice =>
-          invoice.invoiceDate && invoice.invoiceDate >= start
-        );
-      }
+      query += ` AND invoice_date >= $${paramIndex++}`;
+      params.push(this.parseDate(startDate));
     }
 
     if (endDate) {
-      const end = this.parseDate(endDate);
-      if (end) {
-        invoices = invoices.filter(invoice =>
-          invoice.invoiceDate && invoice.invoiceDate <= end
-        );
-      }
+      query += ` AND invoice_date <= $${paramIndex++}`;
+      params.push(this.parseDate(endDate));
     }
 
     if (search) {
-      const query = String(search).toLowerCase();
-      invoices = invoices.filter(invoice =>
-        (invoice.invoiceNumber && invoice.invoiceNumber.toLowerCase().includes(query)) ||
-        (invoice.vendorId && invoice.vendorId.toLowerCase().includes(query))
-      );
+      query += ` AND (LOWER(invoice_number) LIKE LOWER($${paramIndex}) OR LOWER(vendor_id) LIKE LOWER($${paramIndex}))`;
+      params.push(`%${search}%`);
+      paramIndex++;
     }
+
+    query += ' ORDER BY invoice_date DESC';
+
+    const result = await pool.query(query, params);
+    const invoices = result.rows.map(row => this.formatInvoice(row));
 
     const summary = this.buildSummary(invoices);
     const aging = this.calculateAging(invoices);
 
     return {
-      invoices: invoices.map(invoice => this.serializeInvoice(invoice)),
+      invoices,
       summary,
       aging
     };
   }
 
   async getInvoiceById(id) {
-    const invoice = this.invoices.get(String(id));
-    if (!invoice) {
+    const pool = getPool();
+    const result = await pool.query('SELECT * FROM invoices WHERE id = $1', [String(id)]);
+
+    if (result.rows.length === 0) {
       return null;
     }
 
-    const serialized = this.serializeInvoice(invoice);
-    serialized.analytics = {
-      lineItemCount: invoice.lineItems.length,
+    const invoice = this.formatInvoice(result.rows[0]);
+    const lineItems = invoice.lineItems || [];
+
+    invoice.analytics = {
+      lineItemCount: lineItems.length,
       averageLineItemValue: this.roundToTwo(
-        invoice.lineItems.length
-          ? invoice.lineItems.reduce((sum, item) => sum + (item.total || 0), 0) / invoice.lineItems.length
+        lineItems.length
+          ? lineItems.reduce((sum, item) => sum + (item.total || 0), 0) / lineItems.length
           : 0
       ),
-      isOverdue: this.isOverdue(invoice),
-      outstandingBalance: this.roundToTwo(this.resolveOutstanding(invoice))
+      isOverdue: this.isOverdue(result.rows[0]),
+      outstandingBalance: this.roundToTwo(this.resolveOutstanding(result.rows[0]))
     };
 
-    return serialized;
+    return invoice;
   }
 
   async updateInvoice(id, updates = {}) {
-    const invoice = this.invoices.get(String(id));
-    if (!invoice) {
-      return null;
-    }
+    const pool = getPool();
+
+    const setClauses = [];
+    const params = [];
+    let paramIndex = 1;
 
     if (typeof updates.locationId !== 'undefined') {
-      invoice.locationId = updates.locationId;
+      setClauses.push(`location_id = $${paramIndex++}`);
+      params.push(updates.locationId);
     }
 
     if (typeof updates.vendorId !== 'undefined') {
-      invoice.vendorId = updates.vendorId;
+      setClauses.push(`vendor_id = $${paramIndex++}`);
+      params.push(updates.vendorId);
     }
 
     if (typeof updates.invoiceNumber !== 'undefined') {
-      invoice.invoiceNumber = updates.invoiceNumber;
+      setClauses.push(`invoice_number = $${paramIndex++}`);
+      params.push(updates.invoiceNumber);
     }
 
     if (typeof updates.invoiceDate !== 'undefined') {
-      invoice.invoiceDate = this.parseDate(updates.invoiceDate);
+      setClauses.push(`invoice_date = $${paramIndex++}`);
+      params.push(this.parseDate(updates.invoiceDate));
     }
 
     if (typeof updates.dueDate !== 'undefined') {
-      invoice.dueDate = this.parseDate(updates.dueDate);
+      setClauses.push(`due_date = $${paramIndex++}`);
+      params.push(this.parseDate(updates.dueDate));
     }
 
     if (typeof updates.status !== 'undefined') {
-      invoice.status = this.normalizeStatus(updates.status, invoice.status);
+      setClauses.push(`status = $${paramIndex++}`);
+      params.push(this.normalizeStatus(updates.status));
     }
 
     if (typeof updates.tax !== 'undefined') {
-      invoice.tax = this.toNumber(updates.tax, invoice.tax);
+      setClauses.push(`tax = $${paramIndex++}`);
+      params.push(this.toNumber(updates.tax, 0));
     }
 
     if (Array.isArray(updates.lineItems)) {
-      invoice.lineItems = this.normalizeLineItems(updates.lineItems);
-    }
+      const lineItems = this.normalizeLineItems(updates.lineItems);
+      const subtotal = lineItems.reduce((sum, item) => sum + (item.total || 0), 0);
 
-    if (Array.isArray(updates.attachments)) {
-      invoice.attachments = [...updates.attachments];
-    }
+      setClauses.push(`line_items = $${paramIndex++}`);
+      params.push(JSON.stringify(lineItems));
 
-    if (updates.metadata && typeof updates.metadata === 'object') {
-      invoice.metadata = this.normalizeMetadata({ ...invoice.metadata, ...updates.metadata });
-    }
+      setClauses.push(`subtotal = $${paramIndex++}`);
+      params.push(subtotal);
 
-    invoice.updatedAt = new Date();
-    invoice.recalculateTotals();
-
-    this.invoices.set(invoice.id, invoice);
-    return this.serializeInvoice(invoice);
-  }
-
-  async approveInvoice(id, data = {}) {
-    const invoice = this.invoices.get(String(id));
-    if (!invoice) {
-      return null;
-    }
-
-    const { userId, notes } = data;
-    invoice.approve(userId || 'system');
-    invoice.notes = this.appendNote(invoice.notes, notes);
-    this.invoices.set(invoice.id, invoice);
-
-    return this.serializeInvoice(invoice);
-  }
-
-  async reconcileInvoice(id, data = {}) {
-    const invoice = this.invoices.get(String(id));
-    if (!invoice) {
-      return null;
-    }
-
-    invoice.reconciled = true;
-    invoice.reconciledWith = data.reconciledWith || invoice.reconciledWith;
-    invoice.notes = this.appendNote(invoice.notes, data.notes);
-    invoice.updatedAt = new Date();
-
-    if (data.status) {
-      invoice.status = this.normalizeStatus(data.status, invoice.status);
-    }
-
-    if (data.paymentMethod) {
-      invoice.paymentMethod = data.paymentMethod;
-    }
-
-    if (data.paidAt) {
-      invoice.paidAt = this.parseDate(data.paidAt) || new Date();
-      if (!invoice.status || invoice.status === 'approved') {
-        invoice.status = 'paid';
+      // Recalculate total
+      const currentResult = await pool.query('SELECT tax FROM invoices WHERE id = $1', [String(id)]);
+      if (currentResult.rows.length > 0) {
+        const tax = currentResult.rows[0].tax || 0;
+        setClauses.push(`total = $${paramIndex++}`);
+        params.push(subtotal + tax);
       }
     }
 
-    this.invoices.set(invoice.id, invoice);
-    return this.serializeInvoice(invoice);
+    if (Array.isArray(updates.attachments)) {
+      setClauses.push(`attachments = $${paramIndex++}`);
+      params.push(JSON.stringify(updates.attachments));
+    }
+
+    if (updates.metadata && typeof updates.metadata === 'object') {
+      // Get current metadata and merge
+      const currentResult = await pool.query('SELECT metadata FROM invoices WHERE id = $1', [String(id)]);
+      if (currentResult.rows.length > 0) {
+        const currentMetadata = currentResult.rows[0].metadata || {};
+        setClauses.push(`metadata = $${paramIndex++}`);
+        params.push(JSON.stringify({ ...currentMetadata, ...updates.metadata }));
+      }
+    }
+
+    if (setClauses.length === 0) {
+      return await this.getInvoiceById(id);
+    }
+
+    setClauses.push(`updated_at = NOW()`);
+    params.push(String(id));
+
+    const query = `
+      UPDATE invoices
+      SET ${setClauses.join(', ')}
+      WHERE id = $${paramIndex}
+      RETURNING *
+    `;
+
+    const result = await pool.query(query, params);
+    if (result.rows.length === 0) return null;
+
+    return this.formatInvoice(result.rows[0]);
   }
 
-  async recordOCRResult(id, data = {}) {
-    const invoice = this.invoices.get(String(id));
-    if (!invoice) {
+  async approveInvoice(id, data = {}) {
+    const pool = getPool();
+    const { userId, notes } = data;
+
+    // Get current notes
+    const currentResult = await pool.query('SELECT notes FROM invoices WHERE id = $1', [String(id)]);
+    if (currentResult.rows.length === 0) {
       return null;
     }
 
-    invoice.ocrProcessed = true;
-    invoice.ocrConfidence = this.toNumber(data.ocrConfidence, invoice.ocrConfidence);
+    const currentNotes = currentResult.rows[0].notes || '';
+    const updatedNotes = this.appendNote(currentNotes, notes);
+
+    const result = await pool.query(`
+      UPDATE invoices
+      SET
+        status = 'approved',
+        approved_by = $1,
+        approved_at = NOW(),
+        notes = $2,
+        updated_at = NOW()
+      WHERE id = $3
+      RETURNING *
+    `, [userId || 'system', updatedNotes, String(id)]);
+
+    if (result.rows.length === 0) return null;
+    return this.formatInvoice(result.rows[0]);
+  }
+
+  async reconcileInvoice(id, data = {}) {
+    const pool = getPool();
+
+    // Get current invoice
+    const currentResult = await pool.query('SELECT * FROM invoices WHERE id = $1', [String(id)]);
+    if (currentResult.rows.length === 0) {
+      return null;
+    }
+
+    const currentInvoice = currentResult.rows[0];
+    const currentNotes = currentInvoice.notes || '';
+    const updatedNotes = this.appendNote(currentNotes, data.notes);
+
+    const setClauses = ['reconciled = true'];
+    const params = [];
+    let paramIndex = 1;
+
+    if (data.reconciledWith) {
+      setClauses.push(`reconciled_with = $${paramIndex++}`);
+      params.push(data.reconciledWith);
+    }
+
+    setClauses.push(`notes = $${paramIndex++}`);
+    params.push(updatedNotes);
+
+    if (data.status) {
+      setClauses.push(`status = $${paramIndex++}`);
+      params.push(this.normalizeStatus(data.status));
+    }
+
+    if (data.paymentMethod) {
+      setClauses.push(`payment_method = $${paramIndex++}`);
+      params.push(data.paymentMethod);
+    }
+
+    if (data.paidAt) {
+      setClauses.push(`paid_at = $${paramIndex++}`);
+      params.push(this.parseDate(data.paidAt) || new Date());
+
+      // If status not explicitly set and current status is approved or not set, set to paid
+      if (!data.status && (!currentInvoice.status || currentInvoice.status === 'approved')) {
+        setClauses.push(`status = $${paramIndex++}`);
+        params.push('paid');
+      }
+    }
+
+    setClauses.push(`updated_at = NOW()`);
+    params.push(String(id));
+
+    const query = `
+      UPDATE invoices
+      SET ${setClauses.join(', ')}
+      WHERE id = $${paramIndex}
+      RETURNING *
+    `;
+
+    const result = await pool.query(query, params);
+    if (result.rows.length === 0) return null;
+
+    return this.formatInvoice(result.rows[0]);
+  }
+
+  async recordOCRResult(id, data = {}) {
+    const pool = getPool();
+
+    // Get current invoice
+    const currentResult = await pool.query('SELECT * FROM invoices WHERE id = $1', [String(id)]);
+    if (currentResult.rows.length === 0) {
+      return null;
+    }
+
+    const currentInvoice = currentResult.rows[0];
+    const currentNotes = currentInvoice.notes || '';
+    const updatedNotes = this.appendNote(currentNotes, data.notes);
+
+    const setClauses = ['ocr_processed = true'];
+    const params = [];
+    let paramIndex = 1;
+
+    setClauses.push(`ocr_confidence = $${paramIndex++}`);
+    params.push(this.toNumber(data.ocrConfidence, currentInvoice.ocr_confidence));
 
     if (Array.isArray(data.lineItems) && data.lineItems.length) {
-      invoice.lineItems = this.normalizeLineItems(data.lineItems);
+      const lineItems = this.normalizeLineItems(data.lineItems);
+      const subtotal = lineItems.reduce((sum, item) => sum + (item.total || 0), 0);
+
+      setClauses.push(`line_items = $${paramIndex++}`);
+      params.push(JSON.stringify(lineItems));
+
+      setClauses.push(`subtotal = $${paramIndex++}`);
+      params.push(subtotal);
+
+      setClauses.push(`total = $${paramIndex++}`);
+      params.push(subtotal + (currentInvoice.tax || 0));
     }
 
     if (typeof data.invoiceNumber !== 'undefined') {
-      invoice.invoiceNumber = data.invoiceNumber;
+      setClauses.push(`invoice_number = $${paramIndex++}`);
+      params.push(data.invoiceNumber);
     }
 
-    invoice.notes = this.appendNote(invoice.notes, data.notes);
-    invoice.updatedAt = new Date();
-    invoice.recalculateTotals();
+    setClauses.push(`notes = $${paramIndex++}`);
+    params.push(updatedNotes);
 
-    this.invoices.set(invoice.id, invoice);
-    return this.serializeInvoice(invoice);
-  }
+    setClauses.push(`updated_at = NOW()`);
+    params.push(String(id));
 
-  serializeInvoice(invoice) {
-    return {
-      id: invoice.id,
-      locationId: invoice.locationId,
-      vendorId: invoice.vendorId,
-      invoiceNumber: invoice.invoiceNumber,
-      invoiceDate: invoice.invoiceDate ? invoice.invoiceDate.toISOString() : null,
-      dueDate: invoice.dueDate ? invoice.dueDate.toISOString() : null,
-      subtotal: this.roundToTwo(invoice.subtotal),
-      tax: this.roundToTwo(invoice.tax),
-      total: this.roundToTwo(invoice.total),
-      status: invoice.status,
-      lineItems: invoice.lineItems.map(item => ({
-        itemId: item.itemId || null,
-        description: item.description || '',
-        quantity: this.roundToTwo(item.quantity || 0),
-        unitPrice: this.roundToTwo(item.unitPrice || 0),
-        total: this.roundToTwo(item.total || 0),
-        glCode: item.glCode || null
-      })),
-      attachments: invoice.attachments || [],
-      ocrProcessed: Boolean(invoice.ocrProcessed),
-      ocrConfidence: invoice.ocrConfidence ? this.roundToTwo(invoice.ocrConfidence) : 0,
-      approvedBy: invoice.approvedBy || null,
-      approvedAt: invoice.approvedAt ? invoice.approvedAt.toISOString() : null,
-      reconciled: Boolean(invoice.reconciled),
-      reconciledWith: invoice.reconciledWith || null,
-      paymentMethod: invoice.paymentMethod || null,
-      paidAt: invoice.paidAt ? invoice.paidAt.toISOString() : null,
-      notes: invoice.notes || '',
-      metadata: invoice.metadata || {},
-      createdAt: invoice.createdAt ? invoice.createdAt.toISOString() : null,
-      updatedAt: invoice.updatedAt ? invoice.updatedAt.toISOString() : null
-    };
+    const query = `
+      UPDATE invoices
+      SET ${setClauses.join(', ')}
+      WHERE id = $${paramIndex}
+      RETURNING *
+    `;
+
+    const result = await pool.query(query, params);
+    if (result.rows.length === 0) return null;
+
+    return this.formatInvoice(result.rows[0]);
   }
 
   buildSummary(invoices) {
@@ -371,7 +412,7 @@ class InvoiceService {
         summary.approvalsPending += 1;
       }
 
-      const outstanding = this.resolveOutstanding(invoice);
+      const outstanding = invoice.status === 'paid' ? 0 : invoice.total;
       summary.outstandingBalance = this.roundToTwo(summary.outstandingBalance + outstanding);
 
       if (invoice.ocrProcessed && invoice.ocrConfidence) {
@@ -404,8 +445,9 @@ class InvoiceService {
         return;
       }
 
-      const diff = Math.floor((now - invoice.dueDate) / msPerDay);
-      const amount = this.resolveOutstanding(invoice);
+      const dueDate = new Date(invoice.dueDate);
+      const diff = Math.floor((now - dueDate) / msPerDay);
+      const amount = invoice.status === 'paid' ? 0 : invoice.total;
 
       if (diff <= 0) {
         buckets.current += amount;
@@ -425,19 +467,19 @@ class InvoiceService {
     );
   }
 
-  isOverdue(invoice) {
-    if (!invoice.dueDate) return false;
-    if (invoice.status === 'paid') return false;
+  isOverdue(invoiceRow) {
+    if (!invoiceRow.due_date) return false;
+    if (invoiceRow.status === 'paid') return false;
     const now = new Date();
-    return invoice.dueDate < now;
+    const dueDate = new Date(invoiceRow.due_date);
+    return dueDate < now;
   }
 
-  resolveOutstanding(invoice) {
-    if (invoice.status === 'paid') {
+  resolveOutstanding(invoiceRow) {
+    if (invoiceRow.status === 'paid') {
       return 0;
     }
-
-    return this.roundToTwo(invoice.total || 0);
+    return this.roundToTwo(invoiceRow.total || 0);
   }
 
   normalizeStatus(status, fallback = 'pending') {
@@ -466,13 +508,6 @@ class InvoiceService {
         glCode: item.glCode || null
       };
     });
-  }
-
-  normalizeMetadata(metadata) {
-    if (!metadata || typeof metadata !== 'object' || Array.isArray(metadata)) {
-      return {};
-    }
-    return { ...metadata };
   }
 
   parseDate(value) {
@@ -511,6 +546,37 @@ class InvoiceService {
 
   generateId() {
     return `inv-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
+  }
+
+  // Helper method to format database row to API response format
+  formatInvoice(row) {
+    return {
+      id: row.id,
+      locationId: row.location_id,
+      vendorId: row.vendor_id,
+      invoiceNumber: row.invoice_number,
+      invoiceDate: row.invoice_date ? row.invoice_date.toISOString() : null,
+      dueDate: row.due_date ? row.due_date.toISOString() : null,
+      subtotal: this.roundToTwo(row.subtotal),
+      tax: this.roundToTwo(row.tax),
+      total: this.roundToTwo(row.total),
+      status: row.status,
+      lineItems: row.line_items || [],
+      attachments: row.attachments || [],
+      ocrProcessed: Boolean(row.ocr_processed),
+      ocrConfidence: row.ocr_confidence ? this.roundToTwo(row.ocr_confidence) : 0,
+      glCode: row.gl_code,
+      approvedBy: row.approved_by,
+      approvedAt: row.approved_at ? row.approved_at.toISOString() : null,
+      reconciled: Boolean(row.reconciled),
+      reconciledWith: row.reconciled_with,
+      paymentMethod: row.payment_method,
+      paidAt: row.paid_at ? row.paid_at.toISOString() : null,
+      notes: row.notes || '',
+      metadata: row.metadata || {},
+      createdAt: row.created_at ? row.created_at.toISOString() : null,
+      updatedAt: row.updated_at ? row.updated_at.toISOString() : null
+    };
   }
 }
 
