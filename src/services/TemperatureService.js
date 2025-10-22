@@ -218,13 +218,105 @@ class TemperatureService {
       direction,
       status: 'active',
       createdAt: logEntry.recordedAt,
+      updatedAt: new Date(),
       acknowledgedAt: null,
+      acknowledgedBy: null,
       resolvedAt: null,
+      resolvedBy: null,
+      resolution: null,
       notes: []
     };
 
     this.alerts.push(alert);
     return alert;
+  }
+
+  findAlertById(id) {
+    return this.alerts.find(alert => alert.id === id) || null;
+  }
+
+  addAlertNote(alert, { message, author = null, type = 'general' }) {
+    if (typeof message === 'undefined' || message === null) {
+      return;
+    }
+
+    const normalizedMessage = String(message).trim();
+    if (!normalizedMessage) {
+      return;
+    }
+
+    alert.notes.push({
+      id: `note-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
+      message: normalizedMessage,
+      type,
+      author,
+      timestamp: new Date()
+    });
+  }
+
+  async acknowledgeAlert(id, { acknowledgedBy, note } = {}) {
+    const alert = this.findAlertById(id);
+    if (!alert) {
+      return null;
+    }
+
+    const normalizedUser =
+      typeof acknowledgedBy !== 'undefined' && acknowledgedBy !== null
+        ? String(acknowledgedBy).trim()
+        : null;
+
+    alert.status = 'acknowledged';
+    alert.acknowledgedAt = new Date();
+    alert.acknowledgedBy = normalizedUser || null;
+    alert.updatedAt = new Date();
+
+    if (note) {
+      this.addAlertNote(alert, {
+        message: note,
+        author: normalizedUser || null,
+        type: 'acknowledged'
+      });
+    }
+
+    return { ...alert };
+  }
+
+  async resolveAlert(id, { resolvedBy, note, resolution } = {}) {
+    const alert = this.findAlertById(id);
+    if (!alert) {
+      return null;
+    }
+
+    const normalizedUser =
+      typeof resolvedBy !== 'undefined' && resolvedBy !== null
+        ? String(resolvedBy).trim()
+        : null;
+
+    const normalizedResolution =
+      typeof resolution !== 'undefined' && resolution !== null
+        ? String(resolution).trim()
+        : null;
+
+    alert.status = 'resolved';
+    alert.resolvedAt = new Date();
+    alert.resolvedBy = normalizedUser || null;
+    alert.resolution = normalizedResolution || alert.resolution;
+    alert.updatedAt = new Date();
+
+    if (!alert.acknowledgedAt) {
+      alert.acknowledgedAt = new Date();
+      alert.acknowledgedBy = normalizedUser || alert.acknowledgedBy || null;
+    }
+
+    if (note) {
+      this.addAlertNote(alert, {
+        message: note,
+        author: normalizedUser || null,
+        type: 'resolved'
+      });
+    }
+
+    return { ...alert };
   }
 
   resolvePeriod(period) {

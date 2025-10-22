@@ -119,6 +119,33 @@ Summaries live, acknowledged, and resolved alerts with optional location filteri
 GET /temperatures/alerts?locationId={id}&status={status}
 ```
 
+#### Acknowledge Temperature Alert
+Marks an alert as acknowledged and optionally attaches operator notes.
+
+```http
+POST /temperatures/alerts/{alertId}/acknowledge
+Content-Type: application/json
+
+{
+  "acknowledgedBy": "manager-12",
+  "note": "On-site check confirmed door was left open"
+}
+```
+
+#### Resolve Temperature Alert
+Resolves an alert, capturing the corrective action taken.
+
+```http
+POST /temperatures/alerts/{alertId}/resolve
+Content-Type: application/json
+
+{
+  "resolvedBy": "manager-12",
+  "resolution": "Adjusted thermostat and verified temperature",
+  "note": "Unit stabilized within 15 minutes"
+}
+```
+
 #### Get Equipment History
 Returns a trend analysis and latest reading for an individual piece of equipment.
 
