@@ -80,6 +80,61 @@ router.get('/alerts', async (req, res, next) => {
   }
 });
 
+// POST /api/v1/temperatures/alerts/:id/acknowledge - Acknowledge a temperature alert
+router.post('/alerts/:id/acknowledge', async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const { acknowledgedBy, note } = req.body || {};
+
+    const alert = await TemperatureService.acknowledgeAlert(id, {
+      acknowledgedBy,
+      note
+    });
+
+    if (!alert) {
+      return res.status(404).json({
+        success: false,
+        error: 'Alert not found'
+      });
+    }
+
+    res.json({
+      success: true,
+      data: alert
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+// POST /api/v1/temperatures/alerts/:id/resolve - Resolve a temperature alert
+router.post('/alerts/:id/resolve', async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const { resolvedBy, note, resolution } = req.body || {};
+
+    const alert = await TemperatureService.resolveAlert(id, {
+      resolvedBy,
+      note,
+      resolution
+    });
+
+    if (!alert) {
+      return res.status(404).json({
+        success: false,
+        error: 'Alert not found'
+      });
+    }
+
+    res.json({
+      success: true,
+      data: alert
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
 // GET /api/v1/temperatures/equipment/:id - Get equipment temperature history
 router.get('/equipment/:id', async (req, res, next) => {
   try {
