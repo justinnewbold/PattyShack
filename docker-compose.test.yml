@@ -1,0 +1,19 @@
+version: '3.8'
+
+services:
+  postgres-test:
+    image: postgres:15-alpine
+    container_name: pattyshack-test-db
+    environment:
+      POSTGRES_DB: pattyshack_test
+      POSTGRES_USER: pattyshack_user
+      POSTGRES_PASSWORD: pattyshack_dev_password
+    ports:
+      - "5433:5432"  # Use different port to avoid conflicts
+    tmpfs:
+      - /var/lib/postgresql/data  # Use tmpfs for faster test database
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U pattyshack_user -d pattyshack_test"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
