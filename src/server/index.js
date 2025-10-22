@@ -22,6 +22,7 @@ app.use(express.urlencoded({ extended: true }));
 app.use(express.static(path.join(__dirname, '../../public')));
 
 // API Routes
+const authRouter = require('../routes/auth');
 const tasksRouter = require('../routes/tasks');
 const temperaturesRouter = require('../routes/temperatures');
 const inventoryRouter = require('../routes/inventory');
@@ -30,6 +31,7 @@ const schedulesRouter = require('../routes/schedules');
 const analyticsRouter = require('../routes/analytics');
 const locationsRouter = require('../routes/locations');
 
+app.use(`${config.apiPrefix}/auth`, authRouter);
 app.use(`${config.apiPrefix}/tasks`, tasksRouter);
 app.use(`${config.apiPrefix}/temperatures`, temperaturesRouter);
 app.use(`${config.apiPrefix}/inventory`, inventoryRouter);
@@ -105,6 +107,8 @@ async function startServer() {
 
 Available endpoints:
   - GET  /health
+  - POST ${config.apiPrefix}/auth/register
+  - POST ${config.apiPrefix}/auth/login
   - GET  ${config.apiPrefix}/tasks
   - GET  ${config.apiPrefix}/temperatures
   - GET  ${config.apiPrefix}/inventory
