@@ -1,239 +1,235 @@
 /**
  * Schedule Service
- * Provides in-memory labor scheduling, time tracking, and forecasting utilities.
+ * Business logic for labor scheduling, time tracking, and forecasting utilities.
  */
 
-const Schedule = require('../models/Schedule');
+const { getPool } = require('../database/pool');
 
 class ScheduleService {
   constructor() {
-    this.schedules = new Map();
-    this.seedDemoData();
-  }
-
-  seedDemoData() {
-    const today = new Date();
-    const startOfWeek = this.startOfWeek(today);
-
-    const demoSchedules = [
-      {
-        id: 'sched-100',
-        locationId: 'store-100',
-        userId: 'employee-501',
-        date: this.formatDate(startOfWeek),
-        startTime: '08:00',
-        endTime: '16:00',
-        breakDuration: 30,
-        position: 'cook',
-        status: 'completed',
-        hourlyRate: 18.5,
-        clockInTime: this.combineDateTime(startOfWeek, '07:55'),
-        clockOutTime: this.combineDateTime(startOfWeek, '16:10'),
-        metadata: {
-          actualSales: 5200,
-          daypart: 'lunch'
-        }
-      },
-      {
-        id: 'sched-101',
-        locationId: 'store-100',
-        userId: 'employee-502',
-        date: this.formatDate(this.addDays(startOfWeek, 1)),
-        startTime: '10:00',
-        endTime: '18:00',
-        breakDuration: 45,
-        position: 'cashier',
-        status: 'completed',
-        hourlyRate: 16,
-        clockInTime: this.combineDateTime(this.addDays(startOfWeek, 1), '09:58'),
-        clockOutTime: this.combineDateTime(this.addDays(startOfWeek, 1), '18:15'),
-        metadata: {
-          actualSales: 6100,
-          daypart: 'full_day'
-        }
-      },
-      {
-        id: 'sched-102',
-        locationId: 'store-200',
-        userId: 'employee-601',
-        date: this.formatDate(this.addDays(startOfWeek, 2)),
-        startTime: '09:00',
-        endTime: '17:00',
-        breakDuration: 30,
-        position: 'manager',
-        status: 'confirmed',
-        hourlyRate: 24,
-        metadata: {
-          projectedSales: 7000,
-          daypart: 'day'
-        }
-      },
-      {
-        id: 'sched-103',
-        locationId: 'store-100',
-        userId: 'unassigned',
-        date: this.formatDate(this.addDays(startOfWeek, 3)),
-        startTime: '16:00',
-        endTime: '22:00',
-        breakDuration: 20,
-        position: 'line',
-        status: 'open',
-        hourlyRate: 15,
-        metadata: {
-          projectedSales: 4800,
-          daypart: 'dinner'
-        }
-      }
-    ];
-
-    demoSchedules.forEach(schedule => {
-      this.createSchedule(schedule);
-    });
+    // Database-backed service
   }
 
   async createSchedule(data) {
-    const schedule = new Schedule({
-      ...data,
+    const pool = getPool();
+
+    const scheduledHours = this.calculateScheduledHoursFromTimes(data.startTime, data.endTime, data.breakDuration);
+    const actualHours = data.clockInTime && data.clockOutTime
+      ? this.calculateActualHoursFromTimestamps(data.clockInTime, data.clockOutTime, data.breakDuration)
+      : 0;
+    const hourlyRate = this.resolveHourlyRate(data);
+    const laborCost = this.calculateLaborCost(actualHours || scheduledHours, hourlyRate);
+
+    const schedule = {
       id: String(data.id || this.generateId()),
-      clockInTime: data.clockInTime ? new Date(data.clockInTime) : data.clockInTime,
-      clockOutTime: data.clockOutTime ? new Date(data.clockOutTime) : data.clockOutTime,
-      metadata: this.normalizeMetadata(data.metadata)
-    });
+      location_id: data.locationId,
+      user_id: data.userId,
+      date: data.date,
+      start_time: data.startTime,
+      end_time: data.endTime,
+      position: data.position || null,
+      status: data.status || 'scheduled',
+      clock_in_time: data.clockInTime ? new Date(data.clockInTime) : null,
+      clock_out_time: data.clockOutTime ? new Date(data.clockOutTime) : null,
+      clock_in_location: data.clockInLocation || null,
+      break_duration: data.breakDuration || 0,
+      actual_hours: actualHours,
+      scheduled_hours: scheduledHours,
+      labor_cost: laborCost,
+      hourly_rate: hourlyRate,
+      approved_by: data.approvedBy || null,
+      notes: data.notes || null,
+      metadata: JSON.stringify(data.metadata || {})
+    };
 
-    schedule.hourlyRate = this.resolveHourlyRate(data);
-    schedule.scheduledHours = this.roundToTwo(
-      schedule.scheduledHours || schedule.calculateScheduledHours()
-    );
-    schedule.actualHours = this.roundToTwo(
-      schedule.actualHours || schedule.calculateActualHours()
-    );
-    schedule.laborCost = this.calculateLaborCost(schedule);
-    schedule.updatedAt = new Date();
+    const result = await pool.query(`
+      INSERT INTO schedules (
+        id, location_id, user_id, date, start_time, end_time, position, status,
+        clock_in_time, clock_out_time, clock_in_location, break_duration,
+        actual_hours, scheduled_hours, labor_cost, hourly_rate, approved_by, notes, metadata
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19)
+      RETURNING *
+    `, [
+      schedule.id, schedule.location_id, schedule.user_id, schedule.date,
+      schedule.start_time, schedule.end_time, schedule.position, schedule.status,
+      schedule.clock_in_time, schedule.clock_out_time, schedule.clock_in_location,
+      schedule.break_duration, schedule.actual_hours, schedule.scheduled_hours,
+      schedule.labor_cost, schedule.hourly_rate, schedule.approved_by,
+      schedule.notes, schedule.metadata
+    ]);
 
-    this.schedules.set(schedule.id, schedule);
-    return this.serializeSchedule(schedule);
+    return this.formatSchedule(result.rows[0]);
   }
 
   async getSchedules(filters = {}) {
+    const pool = getPool();
     const { locationId, startDate, endDate, userId, status } = filters;
 
-    let schedules = Array.from(this.schedules.values());
+    let query = 'SELECT * FROM schedules WHERE 1=1';
+    const params = [];
+    let paramIndex = 1;
 
     if (locationId) {
-      schedules = schedules.filter(s => s.locationId === String(locationId));
+      query += ` AND location_id = $${paramIndex++}`;
+      params.push(String(locationId));
     }
 
     if (userId) {
-      schedules = schedules.filter(s => String(s.userId) === String(userId));
+      query += ` AND user_id = $${paramIndex++}`;
+      params.push(String(userId));
     }
 
     if (status) {
-      schedules = schedules.filter(s => s.status === status);
+      query += ` AND status = $${paramIndex++}`;
+      params.push(status);
     }
 
-    const start = this.normalizeDate(startDate);
-    const end = this.normalizeDate(endDate);
-
-    if (start) {
-      schedules = schedules.filter(schedule => {
-        const scheduleDate = this.normalizeDate(schedule.date);
-        return scheduleDate && scheduleDate >= start;
-      });
+    if (startDate) {
+      query += ` AND date >= $${paramIndex++}`;
+      params.push(this.normalizeDate(startDate).toISOString().split('T')[0]);
     }
 
-    if (end) {
-      schedules = schedules.filter(schedule => {
-        const scheduleDate = this.normalizeDate(schedule.date);
-        return scheduleDate && scheduleDate <= end;
-      });
+    if (endDate) {
+      query += ` AND date <= $${paramIndex++}`;
+      params.push(this.normalizeDate(endDate).toISOString().split('T')[0]);
     }
+
+    query += ' ORDER BY date ASC, start_time ASC';
+
+    const result = await pool.query(query, params);
+    const schedules = result.rows.map(row => this.formatSchedule(row));
 
     const summary = this.calculateLaborSummary(schedules);
 
     return {
-      schedules: schedules.map(schedule => this.serializeSchedule(schedule)),
+      schedules,
       laborSummary: summary
     };
   }
 
+  async getScheduleById(id) {
+    const pool = getPool();
+    if (id === undefined || id === null) return null;
+
+    const result = await pool.query('SELECT * FROM schedules WHERE id = $1', [String(id)]);
+
+    if (result.rows.length === 0) return null;
+    return this.formatSchedule(result.rows[0]);
+  }
+
   async clockInSchedule(id, options = {}) {
-    const schedule = this.getScheduleById(id);
+    const pool = getPool();
+
+    const schedule = await this.getScheduleById(id);
     if (!schedule) return null;
 
-    if (typeof options.breakDuration !== 'undefined') {
-      schedule.breakDuration = Number(options.breakDuration) || 0;
-    }
+    const clockInTime = options.timestamp ? new Date(options.timestamp) : new Date();
+    const breakDuration = typeof options.breakDuration !== 'undefined'
+      ? Number(options.breakDuration) || 0
+      : schedule.breakDuration;
 
-    if (options.timestamp) {
-      schedule.clockInTime = new Date(options.timestamp);
-      schedule.status = 'in_progress';
-    } else if (!schedule.clockInTime) {
-      schedule.clockIn(options.location);
-    } else {
-      schedule.status = 'in_progress';
-    }
+    const result = await pool.query(`
+      UPDATE schedules
+      SET
+        clock_in_time = $1,
+        clock_in_location = $2,
+        break_duration = $3,
+        status = 'in_progress',
+        notes = $4,
+        updated_at = NOW()
+      WHERE id = $5
+      RETURNING *
+    `, [
+      clockInTime,
+      options.location || schedule.clockInLocation,
+      breakDuration,
+      this.appendNote(schedule.notes, options.notes),
+      String(id)
+    ]);
 
-    if (options.location) {
-      schedule.clockInLocation = options.location;
-    }
-
-    schedule.notes = this.appendNote(schedule.notes, options.notes);
-    schedule.actualHours = this.roundToTwo(schedule.calculateActualHours());
-    schedule.laborCost = this.calculateLaborCost(schedule);
-    schedule.updatedAt = new Date();
-
-    return this.serializeSchedule(schedule);
+    if (result.rows.length === 0) return null;
+    return this.formatSchedule(result.rows[0]);
   }
 
   async clockOutSchedule(id, options = {}) {
-    const schedule = this.getScheduleById(id);
+    const pool = getPool();
+
+    const schedule = await this.getScheduleById(id);
     if (!schedule) return null;
 
-    if (typeof options.breakDuration !== 'undefined') {
-      schedule.breakDuration = Number(options.breakDuration) || 0;
-    }
+    const clockOutTime = options.timestamp ? new Date(options.timestamp) : new Date();
+    const clockInTime = schedule.clockInTime ? new Date(schedule.clockInTime) : (options.timestamp ? new Date(options.timestamp) : new Date());
+    const breakDuration = typeof options.breakDuration !== 'undefined'
+      ? Number(options.breakDuration) || 0
+      : schedule.breakDuration;
 
-    if (!schedule.clockInTime && options.timestamp) {
-      schedule.clockInTime = new Date(options.timestamp);
-    }
+    const actualHours = this.calculateActualHoursFromTimestamps(clockInTime, clockOutTime, breakDuration);
+    const laborCost = this.calculateLaborCost(actualHours, schedule.hourlyRate);
 
-    schedule.clockOut();
+    const result = await pool.query(`
+      UPDATE schedules
+      SET
+        clock_in_time = $1,
+        clock_out_time = $2,
+        break_duration = $3,
+        actual_hours = $4,
+        labor_cost = $5,
+        status = 'completed',
+        notes = $6,
+        updated_at = NOW()
+      WHERE id = $7
+      RETURNING *
+    `, [
+      clockInTime,
+      clockOutTime,
+      breakDuration,
+      actualHours,
+      laborCost,
+      this.appendNote(schedule.notes, options.notes),
+      String(id)
+    ]);
 
-    if (options.timestamp) {
-      schedule.clockOutTime = new Date(options.timestamp);
-    }
-
-    schedule.notes = this.appendNote(schedule.notes, options.notes);
-    schedule.actualHours = this.roundToTwo(schedule.calculateActualHours());
-    schedule.laborCost = this.calculateLaborCost(schedule);
-    schedule.updatedAt = new Date();
-
-    return this.serializeSchedule(schedule);
+    if (result.rows.length === 0) return null;
+    return this.formatSchedule(result.rows[0]);
   }
 
   async getForecast(options = {}) {
+    const pool = getPool();
     const { locationId, date } = options;
     const targetDate = this.normalizeDate(date) || this.normalizeDate(new Date());
     const dayOfWeek = targetDate.getUTCDay();
 
-    const relevantSchedules = Array.from(this.schedules.values()).filter(schedule => {
+    // Get historical schedules for the same day of week
+    let query = 'SELECT * FROM schedules WHERE 1=1';
+    const params = [];
+    let paramIndex = 1;
+
+    if (locationId) {
+      query += ` AND location_id = $${paramIndex++}`;
+      params.push(String(locationId));
+    }
+
+    const result = await pool.query(query, params);
+    const allSchedules = result.rows.map(row => this.formatSchedule(row));
+
+    // Filter by day of week
+    const relevantSchedules = allSchedules.filter(schedule => {
       const scheduleDate = this.normalizeDate(schedule.date);
       if (!scheduleDate) return false;
-      const matchesLocation = locationId ? schedule.locationId === String(locationId) : true;
-      const matchesDay = scheduleDate.getUTCDay() === dayOfWeek;
-      return matchesLocation && matchesDay;
+      return scheduleDate.getUTCDay() === dayOfWeek;
     });
 
     const historicalSampleSize = relevantSchedules.length;
     const averageScheduledHours = this.average(
-      relevantSchedules.map(schedule => schedule.scheduledHours || schedule.calculateScheduledHours())
+      relevantSchedules.map(schedule => schedule.scheduledHours)
     );
     const averageActualHours = this.average(relevantSchedules.map(schedule => schedule.actualHours));
     const hoursBaseline = averageActualHours || averageScheduledHours;
     const recommendedLaborHours = this.roundToTwo(hoursBaseline * 1.05);
 
     const totalSales = relevantSchedules.reduce((sum, schedule) => {
-      const sales = schedule.metadata?.actualSales ?? schedule.metadata?.projectedSales ?? 0;
+      const metadata = schedule.metadata || {};
+      const sales = metadata.actualSales ?? metadata.projectedSales ?? 0;
       return sum + (Number.isFinite(sales) ? sales : 0);
     }, 0);
     const forecastedSales = historicalSampleSize ? totalSales / historicalSampleSize : 0;
@@ -250,11 +246,6 @@ class ScheduleService {
       suggestedStaffing,
       confidence: this.resolveConfidence(historicalSampleSize)
     };
-  }
-
-  getScheduleById(id) {
-    if (id === undefined || id === null) return null;
-    return this.schedules.get(String(id)) || null;
   }
 
   calculateLaborSummary(schedules) {
@@ -279,20 +270,19 @@ class ScheduleService {
     let totalSales = 0;
 
     schedules.forEach(schedule => {
-      const scheduleScheduledHours = schedule.scheduledHours || schedule.calculateScheduledHours();
+      const scheduleScheduledHours = schedule.scheduledHours || 0;
       const scheduleActualHours = schedule.actualHours || 0;
-      const hoursForCost = scheduleActualHours || scheduleScheduledHours;
-      const hourlyRate = schedule.hourlyRate || 0;
 
       scheduledHours += scheduleScheduledHours;
       actualHours += scheduleActualHours;
-      totalCost += schedule.laborCost || (hoursForCost * hourlyRate);
+      totalCost += schedule.laborCost || 0;
 
       if (scheduleActualHours > 8) {
         overtimeHours += scheduleActualHours - 8;
       }
 
-      const sales = schedule.metadata?.actualSales ?? schedule.metadata?.projectedSales ?? 0;
+      const metadata = schedule.metadata || {};
+      const sales = metadata.actualSales ?? metadata.projectedSales ?? 0;
       if (Number.isFinite(sales)) {
         totalSales += sales;
       }
@@ -330,7 +320,7 @@ class ScheduleService {
         };
       }
 
-      coverage[key].scheduledHours += schedule.scheduledHours || schedule.calculateScheduledHours();
+      coverage[key].scheduledHours += schedule.scheduledHours || 0;
       coverage[key].actualHours += schedule.actualHours || 0;
       coverage[key].headcount += 1;
     });
@@ -372,13 +362,36 @@ class ScheduleService {
     });
   }
 
-  calculateLaborCost(schedule) {
-    const hourlyRate = schedule.hourlyRate || 0;
-    if (!hourlyRate) return this.roundToTwo(schedule.laborCost || 0);
+  calculateScheduledHoursFromTimes(startTime, endTime, breakDuration = 0) {
+    if (!startTime || !endTime) return 0;
 
-    const hours = schedule.actualHours || schedule.calculateActualHours();
-    const fallbackHours = hours || schedule.scheduledHours || schedule.calculateScheduledHours();
-    return this.roundToTwo(fallbackHours * hourlyRate);
+    const [startHours, startMinutes] = startTime.split(':').map(Number);
+    const [endHours, endMinutes] = endTime.split(':').map(Number);
+
+    const startTotalMinutes = startHours * 60 + startMinutes;
+    const endTotalMinutes = endHours * 60 + endMinutes;
+
+    const totalMinutes = endTotalMinutes - startTotalMinutes;
+    const hours = (totalMinutes - (breakDuration || 0)) / 60;
+
+    return this.roundToTwo(Math.max(0, hours));
+  }
+
+  calculateActualHoursFromTimestamps(clockInTime, clockOutTime, breakDuration = 0) {
+    if (!clockInTime || !clockOutTime) return 0;
+
+    const inTime = new Date(clockInTime);
+    const outTime = new Date(clockOutTime);
+
+    const totalMilliseconds = outTime - inTime;
+    const totalMinutes = totalMilliseconds / (1000 * 60);
+    const hours = (totalMinutes - (breakDuration || 0)) / 60;
+
+    return this.roundToTwo(Math.max(0, hours));
+  }
+
+  calculateLaborCost(hours, hourlyRate) {
+    return this.roundToTwo((hours || 0) * (hourlyRate || 0));
   }
 
   resolveHourlyRate(data) {
@@ -391,77 +404,6 @@ class ScheduleService {
     }
 
     return 0;
-  }
-
-  normalizeMetadata(metadata) {
-    if (!metadata || typeof metadata !== 'object' || Array.isArray(metadata)) {
-      return {};
-    }
-
-    return { ...metadata };
-  }
-
-  serializeSchedule(schedule) {
-    return {
-      id: schedule.id,
-      locationId: schedule.locationId,
-      userId: schedule.userId,
-      date: schedule.date,
-      startTime: schedule.startTime,
-      endTime: schedule.endTime,
-      breakDuration: schedule.breakDuration,
-      position: schedule.position,
-      status: schedule.status,
-      clockInTime: schedule.clockInTime ? schedule.clockInTime.toISOString() : null,
-      clockOutTime: schedule.clockOutTime ? schedule.clockOutTime.toISOString() : null,
-      clockInLocation: schedule.clockInLocation || null,
-      scheduledHours: this.roundToTwo(schedule.scheduledHours),
-      actualHours: this.roundToTwo(schedule.actualHours),
-      hourlyRate: schedule.hourlyRate,
-      laborCost: this.roundToTwo(schedule.laborCost),
-      approvedBy: schedule.approvedBy || null,
-      notes: schedule.notes || '',
-      metadata: schedule.metadata,
-      createdAt: schedule.createdAt ? schedule.createdAt.toISOString() : null,
-      updatedAt: schedule.updatedAt ? schedule.updatedAt.toISOString() : null
-    };
-  }
-
-  roundToTwo(value) {
-    if (!Number.isFinite(value)) return 0;
-    return Math.round(value * 100) / 100;
-  }
-
-  generateId() {
-    return `sched-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
-  }
-
-  formatDate(date) {
-    if (!(date instanceof Date)) return String(date || '');
-    return date.toISOString().split('T')[0];
-  }
-
-  combineDateTime(date, time) {
-    if (!(date instanceof Date) || typeof time !== 'string') return null;
-    const [hours, minutes] = time.split(':').map(Number);
-    const combined = new Date(date);
-    combined.setHours(hours || 0, minutes || 0, 0, 0);
-    return combined;
-  }
-
-  addDays(date, days) {
-    const clone = new Date(date);
-    clone.setDate(clone.getDate() + days);
-    return clone;
-  }
-
-  startOfWeek(date) {
-    const clone = new Date(date);
-    const day = clone.getDay();
-    const diff = clone.getDate() - day + (day === 0 ? -6 : 1); // Monday as first day
-    clone.setDate(diff);
-    clone.setHours(0, 0, 0, 0);
-    return clone;
   }
 
   normalizeDate(value) {
@@ -497,6 +439,42 @@ class ScheduleService {
     }
 
     return `${existing}\n${trimmed}`;
+  }
+
+  roundToTwo(value) {
+    if (!Number.isFinite(value)) return 0;
+    return Math.round(value * 100) / 100;
+  }
+
+  generateId() {
+    return `sched-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
+  }
+
+  // Helper method to format database row to API response format
+  formatSchedule(row) {
+    return {
+      id: row.id,
+      locationId: row.location_id,
+      userId: row.user_id,
+      date: row.date,
+      startTime: row.start_time,
+      endTime: row.end_time,
+      breakDuration: row.break_duration,
+      position: row.position,
+      status: row.status,
+      clockInTime: row.clock_in_time ? row.clock_in_time.toISOString() : null,
+      clockOutTime: row.clock_out_time ? row.clock_out_time.toISOString() : null,
+      clockInLocation: row.clock_in_location,
+      scheduledHours: this.roundToTwo(row.scheduled_hours),
+      actualHours: this.roundToTwo(row.actual_hours),
+      hourlyRate: parseFloat(row.hourly_rate),
+      laborCost: this.roundToTwo(row.labor_cost),
+      approvedBy: row.approved_by,
+      notes: row.notes || '',
+      metadata: row.metadata || {},
+      createdAt: row.created_at ? row.created_at.toISOString() : null,
+      updatedAt: row.updated_at ? row.updated_at.toISOString() : null
+    };
   }
 }
 

@@ -348,7 +348,7 @@ class AnalyticsService {
   }
 
   async fetchWasteLogs({ locationId, start, end, previousStart, previousEnd }) {
-    const logs = InventoryService.getWasteLogs(locationId ? { locationId } : {});
+    const logs = await InventoryService.getWasteLogs(locationId ? { locationId } : {});
 
     const current = logs.filter(entry => this.isWithinRange(entry.recordedAt, start, end));
     const previous = previousStart || previousEnd
@@ -356,8 +356,8 @@ class AnalyticsService {
       : [];
 
     return {
-      current: this.summarizeWaste(current),
-      previous: this.summarizeWaste(previous)
+      current: await this.summarizeWaste(current),
+      previous: await this.summarizeWaste(previous)
     };
   }
 
@@ -387,7 +387,7 @@ class AnalyticsService {
     };
   }
 
-  summarizeWaste(entries) {
+  async summarizeWaste(entries) {
     if (!entries.length) {
       return {
         totalCost: 0,
@@ -399,8 +399,8 @@ class AnalyticsService {
     const byCategoryMap = new Map();
     const reasonMap = new Map();
 
-    entries.forEach(entry => {
-      const item = InventoryService.getItemById(entry.itemId);
+    for (const entry of entries) {
+      const item = await InventoryService.getItemById(entry.itemId);
       const category = item?.category || 'uncategorized';
 
       const currentCategory = byCategoryMap.get(category) || 0;
@@ -409,7 +409,7 @@ class AnalyticsService {
       const reasonKey = entry.reasonCode || 'unspecified';
       const reasonTotal = reasonMap.get(reasonKey) || 0;
       reasonMap.set(reasonKey, reasonTotal + (entry.cost || 0));
-    });
+    }
 
     const totalCost = entries.reduce((sum, entry) => sum + (entry.cost || 0), 0);
 
