@@ -2,7 +2,6 @@
  * PattyShack Server
  * Restaurant Operations Platform API Server
  */
-
 const express = require('express');
 const cors = require('cors');
 const path = require('path');
@@ -15,29 +14,17 @@ const { runMigrations } = require('../database/migrate');
 const { seedDatabase } = require('../database/seeds');
 const { autoSeedDemoUsers } = require('../../scripts/autoSeedOnStartup');
 
-// Initialize Express app
 const app = express();
 
 // Middleware
 app.use(cors(config.cors));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
-app.use(express.static(path.join(__dirname, '../../public')));
 
-// API Documentation
-app.use(`${config.apiPrefix}/docs`, swaggerUi.serve, swaggerUi.setup(swaggerSpec, {
-  customCss: '.swagger-ui .topbar { display: none }',
-  customSiteTitle: 'PattyShack API Documentation'
-}));
+// Serve built frontend
+app.use(express.static(path.join(__dirname, '../../dist')));
 
-// Swagger JSON spec
-app.get(`${config.apiPrefix}/docs.json`, (req, res) => {
-  res.setHeader('Content-Type', 'application/json');
-  res.send(swaggerSpec);
-});
-
-// API Routes
-const authRouter = require('../routes/auth');
+// API routes
 const tasksRouter = require('../routes/tasks');
 const temperaturesRouter = require('../routes/temperatures');
 const inventoryRouter = require('../routes/inventory');
@@ -55,7 +42,7 @@ app.use(`${config.apiPrefix}/schedules`, schedulesRouter);
 app.use(`${config.apiPrefix}/analytics`, analyticsRouter);
 app.use(`${config.apiPrefix}/locations`, locationsRouter);
 
-// Health check endpoint
+// Health endpoint
 app.get('/health', (req, res) => {
   res.json({
     status: 'healthy',
@@ -65,8 +52,8 @@ app.get('/health', (req, res) => {
   });
 });
 
-// Root endpoint
-app.get('/', (req, res) => {
+// API info
+app.get('/api', (req, res) => {
   res.json({
     name: 'PattyShack API',
     version: '1.0.0',
@@ -80,91 +67,50 @@ app.get('/', (req, res) => {
   });
 });
 
-// Error handling
+// Fallback: serve frontend for non-API routes
+app.get('*', (req, res, next) => {
+  if (req.path.startsWith('/api') || req.path.startsWith('/health')) return next();
+  res.sendFile(path.join(__dirname, '../../dist/index.html'));
+});
+
+// Errors
 app.use(notFound);
 app.use(errorHandler);
 
-// Database and server initialization
+// DB + server startup
 async function startServer() {
   const PORT = config.port;
-
   try {
     console.log('\n🚀 Starting PattyShack server...\n');
-
-    // Initialize database connection
-    console.log('📊 Initializing database connection...');
     initializePool();
-
-    // Test database connection
-    const connectionOk = await testConnection();
-    if (!connectionOk && config.env === 'production') {
-      throw new Error('Database connection failed');
-    }
-
-    // Run migrations
+    const ok = await testConnection();
+    if (!ok && config.env === 'production') throw new Error('Database connection failed');
     console.log('\n📦 Running database migrations...');
     await runMigrations();
-
-    // Auto-seed demo users if enabled (works in all environments)
-    await autoSeedDemoUsers();
-
-    // Seed demo data in development
     if (config.env === 'development' && process.env.SEED_DATABASE !== 'false') {
       console.log('\n🌱 Seeding demo data...');
       await seedDatabase();
     }
-
-    // Start Express server
     app.listen(PORT, () => {
-      console.log(`
-╔═══════════════════════════════════════════════════════════╗
-║                                                           ║
-║              PattyShack API Server                        ║
-║        Restaurant Operations Platform                     ║
-║                                                           ║
-╚═══════════════════════════════════════════════════════════╝
-
-✅ Server running on port ${PORT}
-📍 Environment: ${config.env}
-🌐 API Base URL: http://localhost:${PORT}${config.apiPrefix}
-
-📚 API Documentation: http://localhost:${PORT}${config.apiPrefix}/docs
-
-Available endpoints:
-  - GET  /health
-  - POST ${config.apiPrefix}/auth/register
-  - POST ${config.apiPrefix}/auth/login
-  - GET  ${config.apiPrefix}/tasks
-  - GET  ${config.apiPrefix}/temperatures
-  - GET  ${config.apiPrefix}/inventory
-  - GET  ${config.apiPrefix}/invoices
-  - GET  ${config.apiPrefix}/schedules
-  - GET  ${config.apiPrefix}/analytics
-  - GET  ${config.apiPrefix}/locations
-      `);
+      console.log(`✅ Server running on port ${PORT}`);
     });
-
-  } catch (error) {
-    console.error('❌ Failed to start server:', error.message);
-    console.error(error.stack);
+  } catch (err) {
+    console.error('❌ Failed to start server:', err.message);
     process.exit(1);
   }
 }
 
-// Handle graceful shutdown
+// graceful shutdown
 process.on('SIGTERM', async () => {
   console.log('\n⚠️  SIGTERM received, shutting down gracefully...');
   await closePool();
   process.exit(0);
 });
-
 process.on('SIGINT', async () => {
   console.log('\n⚠️  SIGINT received, shutting down gracefully...');
   await closePool();
   process.exit(0);
 });
 
-// Start the server
 startServer();
-
 module.exports = app;

@@ -1,52 +1,26 @@
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
-import { AuthProvider } from './context/AuthContext';
-import Layout from './components/Layout';
-import PrivateRoute from './components/PrivateRoute';
-import Login from './pages/Login';
-import Register from './pages/Register';
-import Dashboard from './pages/Dashboard';
-import Tasks from './pages/Tasks';
-import Temperatures from './pages/Temperatures';
-import Inventory from './pages/Inventory';
-import Schedules from './pages/Schedules';
-import Locations from './pages/Locations';
-import Analytics from './pages/Analytics';
-import Invoices from './pages/Invoices';
+import { useEffect, useState } from 'react'
 
-function App() {
+export default function App() {
+  const [data, setData] = useState(null)
+  const [error, setError] = useState('')
+
+  useEffect(() => {
+    // This hits your Express server's health endpoint on the same domain
+    fetch('/health')
+      .then(res => res.json())
+      .then(setData)
+      .catch(err => setError(err.message))
+  }, [])
+
   return (
-    <AuthProvider>
-      <Router>
-        <Routes>
-          {/* Public routes */}
-          <Route path="/login" element={<Login />} />
-          <Route path="/register" element={<Register />} />
-
-          {/* Private routes */}
-          <Route
-            path="/*"
-            element={
-              <PrivateRoute>
-                <Layout>
-                  <Routes>
-                    <Route path="/" element={<Navigate to="/dashboard" replace />} />
-                    <Route path="/dashboard" element={<Dashboard />} />
-                    <Route path="/tasks" element={<Tasks />} />
-                    <Route path="/temperatures" element={<Temperatures />} />
-                    <Route path="/inventory" element={<Inventory />} />
-                    <Route path="/schedules" element={<Schedules />} />
-                    <Route path="/locations" element={<Locations />} />
-                    <Route path="/analytics" element={<Analytics />} />
-                    <Route path="/invoices" element={<Invoices />} />
-                  </Routes>
-                </Layout>
-              </PrivateRoute>
-            }
-          />
-        </Routes>
-      </Router>
-    </AuthProvider>
-  );
+    <div style={{ fontFamily: 'sans-serif', padding: '2rem' }}>
+      <h1>🍔 Patty Shack</h1>
+      {error && <p style={{ color: 'red' }}>Error: {error}</p>}
+      {data ? (
+        <pre>{JSON.stringify(data, null, 2)}</pre>
+      ) : (
+        <p>Checking API health...</p>
+      )}
+    </div>
+  )
 }
-
-export default App;
