@@ -5,11 +5,14 @@
 const express = require('express');
 const cors = require('cors');
 const path = require('path');
+const swaggerUi = require('swagger-ui-express');
+const swaggerSpec = require('../config/swagger');
 const config = require('../config/app');
 const { errorHandler, notFound } = require('../middleware/errorHandler');
 const { initializePool, testConnection, closePool } = require('../database/pool');
 const { runMigrations } = require('../database/migrate');
 const { seedDatabase } = require('../database/seeds');
+const { autoSeedDemoUsers } = require('../../scripts/autoSeedOnStartup');
 
 const app = express();
 
@@ -30,6 +33,7 @@ const schedulesRouter = require('../routes/schedules');
 const analyticsRouter = require('../routes/analytics');
 const locationsRouter = require('../routes/locations');
 
+app.use(`${config.apiPrefix}/auth`, authRouter);
 app.use(`${config.apiPrefix}/tasks`, tasksRouter);
 app.use(`${config.apiPrefix}/temperatures`, temperaturesRouter);
 app.use(`${config.apiPrefix}/inventory`, inventoryRouter);
@@ -54,7 +58,12 @@ app.get('/api', (req, res) => {
     name: 'PattyShack API',
     version: '1.0.0',
     description: 'Restaurant Operations Platform',
-    documentation: '/api/v1/docs'
+    documentation: `${config.apiPrefix}/docs`,
+    endpoints: {
+      docs: `${config.apiPrefix}/docs`,
+      docsJson: `${config.apiPrefix}/docs.json`,
+      health: '/health'
+    }
   });
 });
 

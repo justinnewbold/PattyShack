@@ -73,10 +73,11 @@ A comprehensive restaurant operations platform for multi-location management, pr
 ## 📦 Installation
 
 ### Prerequisites
-- Node.js 14.x or higher
+- Node.js 18.x or higher
 - npm or yarn
+- PostgreSQL 15+ (recommended) or SQLite (development)
 
-### Setup
+### Backend Setup
 
 1. Clone the repository:
 ```bash
@@ -84,22 +85,62 @@ git clone https://github.com/justinnewbold/PattyShack.git
 cd PattyShack
 ```
 
-2. Install dependencies:
+2. Install backend dependencies:
 ```bash
 npm install
 ```
 
-3. Start the server:
+3. Configure environment variables (optional):
+```bash
+cp .env.example .env
+# Edit .env with your database credentials
+```
+
+4. Start the backend server:
 ```bash
 npm start
 ```
 
-The server will start on `http://localhost:3000`
+The API server will start on `http://localhost:3000`
 
-### Development Mode
+### Frontend Setup
+
+1. Navigate to the frontend directory:
+```bash
+cd frontend
+```
+
+2. Install frontend dependencies:
+```bash
+npm install
+```
+
+3. Configure environment (optional):
+```bash
+cp .env.example .env
+# VITE_API_URL defaults to http://localhost:3000/api/v1
+```
+
+4. Start the development server:
 ```bash
 npm run dev
 ```
+
+The React app will start on `http://localhost:5173`
+
+### Full Stack Development
+
+To run both backend and frontend:
+
+```bash
+# Terminal 1 - Backend
+npm start
+
+# Terminal 2 - Frontend
+cd frontend && npm run dev
+```
+
+Then visit http://localhost:5173 in your browser.
 
 ## 🔧 Configuration
 
@@ -127,6 +168,19 @@ CORS_ORIGIN=*
 ```
 
 ## 📚 API Documentation
+
+### Interactive Documentation
+
+Visit the **Swagger UI** for interactive API documentation:
+```
+http://localhost:3000/api/v1/docs
+```
+
+Features:
+- Browse all 45 API endpoints
+- Test endpoints directly in the browser
+- View request/response schemas
+- See code examples
 
 ### Base URL
 ```
@@ -202,20 +256,46 @@ See [docs/API.md](./docs/API.md) for complete API documentation.
 
 ## 🏗️ Architecture
 
+### Project Structure
+
 ```
 PattyShack/
-├── src/
-│   ├── server/         # Express server
-│   ├── routes/         # API routes
-│   ├── models/         # Data models
-│   ├── middleware/     # Express middleware
-│   ├── services/       # Business logic
-│   ├── config/         # Configuration files
-│   └── utils/          # Utility functions
-├── public/             # Static web files
-├── docs/               # Documentation
-└── tests/              # Test files
+├── src/                    # Backend (Node.js/Express)
+│   ├── server/             # Express server setup
+│   ├── routes/             # API route handlers
+│   ├── services/           # Business logic layer
+│   ├── middleware/         # Express middleware
+│   ├── database/           # Database connection & migrations
+│   ├── config/             # Configuration files
+│   └── utils/              # Utility functions
+├── frontend/               # Frontend (React/Vite)
+│   ├── src/
+│   │   ├── components/     # Reusable UI components
+│   │   ├── pages/          # Page components (Dashboard, Tasks, etc.)
+│   │   ├── services/       # API service layer
+│   │   ├── context/        # React context providers
+│   │   ├── utils/          # Frontend utilities
+│   │   └── App.jsx         # Main app component
+│   └── public/             # Static assets
+├── tests/                  # Backend tests (Jest/Supertest)
+├── docs/                   # Documentation
+└── public/                 # Shared static files
 ```
+
+### Tech Stack
+
+**Backend:**
+- Node.js + Express.js
+- PostgreSQL (production) / SQLite (development)
+- JWT authentication
+- OpenAPI/Swagger documentation
+
+**Frontend:**
+- React 18 + Vite
+- React Router v6
+- Tailwind CSS
+- Axios for API calls
+- Recharts for data visualization
 
 ## 🔐 Security
 

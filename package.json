@@ -18,7 +18,9 @@
     "db:stop": "docker-compose down",
     "db:reset": "docker-compose down -v && docker-compose up -d && sleep 3",
     "db:test:setup": "docker-compose -f docker-compose.test.yml up -d && echo 'Waiting for test database...' && sleep 3",
-    "db:test:stop": "docker-compose -f docker-compose.test.yml down"
+    "db:test:stop": "docker-compose -f docker-compose.test.yml down",
+    "create-superuser": "node scripts/createSuperuser.js",
+    "seed-demo-users": "node scripts/seedDemoUsers.js"
   },
   "keywords": [
     "restaurant",
@@ -34,6 +36,7 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "bcrypt": "^6.0.0",
     "cors": "^2.8.5",
     "express": "^4.18.2",
     "pg": "^8.16.3",
