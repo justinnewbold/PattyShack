@@ -3,10 +3,17 @@ const { Pool } = require('pg');
 
 let pool;
 
+/**
+ * Initialize the PostgreSQL connection pool
+ */
 function initializePool() {
   if (pool) return pool;
 
   const connectionString = process.env.DATABASE_URL;
+
+  if (!connectionString) {
+    throw new Error('DATABASE_URL environment variable not set');
+  }
 
   pool = new Pool({
     connectionString,
@@ -17,12 +24,25 @@ function initializePool() {
   return pool;
 }
 
+/**
+ * Return the current PostgreSQL pool
+ */
+function getPool() {
+  if (!pool) {
+    throw new Error('Database pool not initialized. Call initializePool() first.');
+  }
+  return pool;
+}
+
+/**
+ * Test database connectivity
+ */
 async function testConnection() {
   try {
-    const client = await pool.connect();
-    await client.query('SELECT NOW()');
+    const client = await getPool().connect();
+    const result = await client.query('SELECT NOW()');
     client.release();
-    console.log('✅ Database connection test succeeded');
+    console.log(`✅ Database connection test succeeded: ${result.rows[0].now}`);
     return true;
   } catch (err) {
     console.error('❌ Database connection failed:', err.message);
@@ -30,6 +50,9 @@ async function testConnection() {
   }
 }
 
+/**
+ * Close the database pool
+ */
 async function closePool() {
   if (pool) {
     await pool.end();
@@ -37,4 +60,4 @@ async function closePool() {
   }
 }
 
-module.exports = { initializePool, testConnection, closePool };
+module.exports = { initializePool, getPool, testConnection, closePool };
