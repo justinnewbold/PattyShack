@@ -9,8 +9,30 @@
     "dev:client": "npm run dev --prefix frontend",
     "build": "npm run build --prefix frontend",
     "start": "npm run build --prefix frontend && node src/server/index.js",
-    "test": "NODE_ENV=test jest"
+    "test": "NODE_ENV=test jest",
+    "test:watch": "NODE_ENV=test jest --watch",
+    "test:coverage": "NODE_ENV=test jest --coverage",
+    "test:integration": "NODE_ENV=test jest tests/integration",
+    "test:unit": "NODE_ENV=test jest tests/unit",
+    "db:setup": "docker-compose up -d && echo 'Waiting for database...' && sleep 3",
+    "db:stop": "docker-compose down",
+    "db:reset": "docker-compose down -v && docker-compose up -d && sleep 3",
+    "db:test:setup": "docker-compose -f docker-compose.test.yml up -d && echo 'Waiting for test database...' && sleep 3",
+    "db:test:stop": "docker-compose -f docker-compose.test.yml down"
   },
+  "keywords": [
+    "restaurant",
+    "operations",
+    "task-management",
+    "inventory",
+    "temperature-monitoring",
+    "scheduling",
+    "analytics",
+    "haccp",
+    "multi-location"
+  ],
+  "author": "",
+  "license": "ISC",
   "dependencies": {
     "cors": "^2.8.5",
     "express": "^4.18.2",
