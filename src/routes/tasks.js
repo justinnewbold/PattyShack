@@ -17,7 +17,86 @@ const normalizePagination = (value, defaultValue) => {
   return parsed;
 };
 
-// GET /api/v1/tasks - List tasks with filters
+/**
+ * @swagger
+ * /tasks:
+ *   get:
+ *     summary: List tasks with filters
+ *     description: Retrieve a paginated list of tasks with optional filtering by location, status, priority, type, and assignee
+ *     tags: [Tasks]
+ *     parameters:
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *           default: 1
+ *         description: Page number
+ *       - in: query
+ *         name: perPage
+ *         schema:
+ *           type: integer
+ *           default: 20
+ *         description: Items per page
+ *       - in: query
+ *         name: locationId
+ *         schema:
+ *           type: integer
+ *         description: Filter by location ID
+ *       - in: query
+ *         name: status
+ *         schema:
+ *           type: string
+ *           enum: [pending, in_progress, completed, overdue]
+ *         description: Filter by task status
+ *       - in: query
+ *         name: priority
+ *         schema:
+ *           type: string
+ *           enum: [low, medium, high, critical]
+ *         description: Filter by priority
+ *       - in: query
+ *         name: type
+ *         schema:
+ *           type: string
+ *         description: Filter by task type
+ *       - in: query
+ *         name: assignedTo
+ *         schema:
+ *           type: integer
+ *         description: Filter by assigned user ID
+ *     responses:
+ *       200:
+ *         description: Tasks retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     tasks:
+ *                       type: array
+ *                       items:
+ *                         $ref: '#/components/schemas/Task'
+ *                     summary:
+ *                       type: object
+ *                       description: Task statistics summary
+ *                     pagination:
+ *                       type: object
+ *                       properties:
+ *                         page:
+ *                           type: integer
+ *                         perPage:
+ *                           type: integer
+ *                         total:
+ *                           type: integer
+ *                         totalPages:
+ *                           type: integer
+ */
 router.get('/', async (req, res, next) => {
   try {
     const { page: pageQuery, perPage: perPageQuery, ...filters } = req.query;
@@ -49,7 +128,36 @@ router.get('/', async (req, res, next) => {
   }
 });
 
-// GET /api/v1/tasks/:id - Get task details
+/**
+ * @swagger
+ * /tasks/{id}:
+ *   get:
+ *     summary: Get task by ID
+ *     description: Retrieve detailed information about a specific task
+ *     tags: [Tasks]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: Task ID
+ *     responses:
+ *       200:
+ *         description: Task retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 data:
+ *                   $ref: '#/components/schemas/Task'
+ *       404:
+ *         $ref: '#/components/responses/NotFoundError'
+ */
 router.get('/:id', async (req, res, next) => {
   try {
     const { id } = req.params;
@@ -71,7 +179,75 @@ router.get('/:id', async (req, res, next) => {
   }
 });
 
-// POST /api/v1/tasks - Create new task
+/**
+ * @swagger
+ * /tasks:
+ *   post:
+ *     summary: Create a new task
+ *     description: Create a new task with title, type, and location
+ *     tags: [Tasks]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - title
+ *               - type
+ *               - locationId
+ *             properties:
+ *               title:
+ *                 type: string
+ *                 description: Task title
+ *                 example: Daily temperature check
+ *               description:
+ *                 type: string
+ *                 description: Task description
+ *                 example: Check all refrigeration equipment temperatures
+ *               type:
+ *                 type: string
+ *                 description: Task type
+ *                 example: temperature
+ *               locationId:
+ *                 type: integer
+ *                 description: Location ID where task is assigned
+ *                 example: 1
+ *               assignedTo:
+ *                 type: integer
+ *                 description: User ID of assignee
+ *                 example: 5
+ *               priority:
+ *                 type: string
+ *                 enum: [low, medium, high, critical]
+ *                 description: Task priority
+ *                 example: high
+ *               status:
+ *                 type: string
+ *                 enum: [pending, in_progress, completed, overdue]
+ *                 description: Task status
+ *                 example: pending
+ *               dueDate:
+ *                 type: string
+ *                 format: date-time
+ *                 description: Due date
+ *                 example: "2025-10-23T18:00:00Z"
+ *     responses:
+ *       201:
+ *         description: Task created successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 data:
+ *                   $ref: '#/components/schemas/Task'
+ *       400:
+ *         $ref: '#/components/responses/ValidationError'
+ */
 router.post('/', async (req, res, next) => {
   try {
     const taskData = req.body || {};
@@ -122,7 +298,60 @@ router.post('/', async (req, res, next) => {
   }
 });
 
-// PUT /api/v1/tasks/:id - Update task
+/**
+ * @swagger
+ * /tasks/{id}:
+ *   put:
+ *     summary: Update a task
+ *     description: Update an existing task's properties
+ *     tags: [Tasks]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: Task ID
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               title:
+ *                 type: string
+ *               description:
+ *                 type: string
+ *               status:
+ *                 type: string
+ *                 enum: [pending, in_progress, completed, overdue]
+ *               priority:
+ *                 type: string
+ *                 enum: [low, medium, high, critical]
+ *               assignedTo:
+ *                 type: integer
+ *               dueDate:
+ *                 type: string
+ *                 format: date-time
+ *     responses:
+ *       200:
+ *         description: Task updated successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 data:
+ *                   $ref: '#/components/schemas/Task'
+ *       400:
+ *         $ref: '#/components/responses/ValidationError'
+ *       404:
+ *         $ref: '#/components/responses/NotFoundError'
+ */
 router.put('/:id', async (req, res, next) => {
   try {
     const { id } = req.params;
@@ -173,7 +402,55 @@ router.put('/:id', async (req, res, next) => {
   }
 });
 
-// POST /api/v1/tasks/:id/complete - Complete task
+/**
+ * @swagger
+ * /tasks/{id}/complete:
+ *   post:
+ *     summary: Complete a task
+ *     description: Mark a task as completed with completion data
+ *     tags: [Tasks]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: Task ID
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - userId
+ *             properties:
+ *               userId:
+ *                 type: integer
+ *                 description: ID of user completing the task
+ *                 example: 5
+ *               notes:
+ *                 type: string
+ *                 description: Completion notes
+ *                 example: All temperatures within range
+ *     responses:
+ *       200:
+ *         description: Task completed successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 data:
+ *                   $ref: '#/components/schemas/Task'
+ *       400:
+ *         $ref: '#/components/responses/ValidationError'
+ *       404:
+ *         $ref: '#/components/responses/NotFoundError'
+ */
 router.post('/:id/complete', async (req, res, next) => {
   try {
     const { id } = req.params;
@@ -204,7 +481,37 @@ router.post('/:id/complete', async (req, res, next) => {
   }
 });
 
-// DELETE /api/v1/tasks/:id - Delete task
+/**
+ * @swagger
+ * /tasks/{id}:
+ *   delete:
+ *     summary: Delete a task
+ *     description: Permanently delete a task
+ *     tags: [Tasks]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: Task ID
+ *     responses:
+ *       200:
+ *         description: Task deleted successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 message:
+ *                   type: string
+ *                   example: Task deleted successfully
+ *       404:
+ *         $ref: '#/components/responses/NotFoundError'
+ */
 router.delete('/:id', async (req, res, next) => {
   try {
     const { id } = req.params;

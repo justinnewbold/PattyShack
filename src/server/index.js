@@ -6,6 +6,8 @@
 const express = require('express');
 const cors = require('cors');
 const path = require('path');
+const swaggerUi = require('swagger-ui-express');
+const swaggerSpec = require('../config/swagger');
 const config = require('../config/app');
 const { errorHandler, notFound } = require('../middleware/errorHandler');
 const { initializePool, testConnection, closePool } = require('../database/pool');
@@ -20,6 +22,18 @@ app.use(cors(config.cors));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(express.static(path.join(__dirname, '../../public')));
+
+// API Documentation
+app.use(`${config.apiPrefix}/docs`, swaggerUi.serve, swaggerUi.setup(swaggerSpec, {
+  customCss: '.swagger-ui .topbar { display: none }',
+  customSiteTitle: 'PattyShack API Documentation'
+}));
+
+// Swagger JSON spec
+app.get(`${config.apiPrefix}/docs.json`, (req, res) => {
+  res.setHeader('Content-Type', 'application/json');
+  res.send(swaggerSpec);
+});
 
 // API Routes
 const authRouter = require('../routes/auth');
@@ -56,7 +70,12 @@ app.get('/', (req, res) => {
     name: 'PattyShack API',
     version: '1.0.0',
     description: 'Restaurant Operations Platform',
-    documentation: '/api/v1/docs'
+    documentation: `${config.apiPrefix}/docs`,
+    endpoints: {
+      docs: `${config.apiPrefix}/docs`,
+      docsJson: `${config.apiPrefix}/docs.json`,
+      health: '/health'
+    }
   });
 });
 
@@ -104,6 +123,8 @@ async function startServer() {
 ✅ Server running on port ${PORT}
 📍 Environment: ${config.env}
 🌐 API Base URL: http://localhost:${PORT}${config.apiPrefix}
+
+📚 API Documentation: http://localhost:${PORT}${config.apiPrefix}/docs
 
 Available endpoints:
   - GET  /health

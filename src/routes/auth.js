@@ -10,8 +10,87 @@ const { authenticate } = require('../middleware/auth');
 const { isValidEmail } = require('../utils/validators');
 
 /**
- * POST /api/v1/auth/register
- * Register a new user
+ * @swagger
+ * /auth/register:
+ *   post:
+ *     summary: Register a new user
+ *     description: Creates a new user account with username, email, and password. Returns user data and JWT tokens.
+ *     tags: [Authentication]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - username
+ *               - email
+ *               - password
+ *             properties:
+ *               username:
+ *                 type: string
+ *                 minLength: 3
+ *                 description: Unique username (minimum 3 characters)
+ *                 example: johndoe
+ *               email:
+ *                 type: string
+ *                 format: email
+ *                 description: Valid email address
+ *                 example: john.doe@example.com
+ *               password:
+ *                 type: string
+ *                 format: password
+ *                 minLength: 8
+ *                 description: Password (minimum 8 characters)
+ *                 example: SecurePass123!
+ *               role:
+ *                 type: string
+ *                 enum: [crew, manager, district, regional, corporate]
+ *                 description: User role (defaults to crew)
+ *                 example: manager
+ *               locationId:
+ *                 type: integer
+ *                 description: Primary location ID
+ *                 example: 1
+ *               firstName:
+ *                 type: string
+ *                 description: First name
+ *                 example: John
+ *               lastName:
+ *                 type: string
+ *                 description: Last name
+ *                 example: Doe
+ *               phone:
+ *                 type: string
+ *                 description: Phone number
+ *                 example: "+1234567890"
+ *     responses:
+ *       201:
+ *         description: User registered successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     user:
+ *                       $ref: '#/components/schemas/User'
+ *                     accessToken:
+ *                       type: string
+ *                       description: JWT access token (valid for 24 hours)
+ *                     refreshToken:
+ *                       type: string
+ *                       description: JWT refresh token (valid for 7 days)
+ *                 message:
+ *                   type: string
+ *                   example: User registered successfully
+ *       400:
+ *         $ref: '#/components/responses/ValidationError'
  */
 router.post('/register', async (req, res) => {
   try {
@@ -88,8 +167,64 @@ router.post('/register', async (req, res) => {
 });
 
 /**
- * POST /api/v1/auth/login
- * Login with username/email and password
+ * @swagger
+ * /auth/login:
+ *   post:
+ *     summary: Login user
+ *     description: Authenticate user with username/email and password. Returns user data and JWT tokens.
+ *     tags: [Authentication]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - password
+ *             properties:
+ *               username:
+ *                 type: string
+ *                 description: Username (provide username OR email)
+ *                 example: johndoe
+ *               email:
+ *                 type: string
+ *                 format: email
+ *                 description: Email address (provide username OR email)
+ *                 example: john.doe@example.com
+ *               password:
+ *                 type: string
+ *                 format: password
+ *                 description: User password
+ *                 example: SecurePass123!
+ *     responses:
+ *       200:
+ *         description: Login successful
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     user:
+ *                       $ref: '#/components/schemas/User'
+ *                     accessToken:
+ *                       type: string
+ *                       description: JWT access token (valid for 24 hours)
+ *                     refreshToken:
+ *                       type: string
+ *                       description: JWT refresh token (valid for 7 days)
+ *                 message:
+ *                   type: string
+ *                   example: Login successful
+ *       400:
+ *         $ref: '#/components/responses/ValidationError'
+ *       401:
+ *         $ref: '#/components/responses/UnauthorizedError'
  */
 router.post('/login', async (req, res) => {
   try {
@@ -128,8 +263,51 @@ router.post('/login', async (req, res) => {
 });
 
 /**
- * POST /api/v1/auth/refresh
- * Refresh access token using refresh token
+ * @swagger
+ * /auth/refresh:
+ *   post:
+ *     summary: Refresh access token
+ *     description: Generate a new access token using a valid refresh token
+ *     tags: [Authentication]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - refreshToken
+ *             properties:
+ *               refreshToken:
+ *                 type: string
+ *                 description: Valid refresh token
+ *                 example: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+ *     responses:
+ *       200:
+ *         description: Token refreshed successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     accessToken:
+ *                       type: string
+ *                       description: New JWT access token
+ *                     user:
+ *                       $ref: '#/components/schemas/User'
+ *                 message:
+ *                   type: string
+ *                   example: Token refreshed successfully
+ *       400:
+ *         $ref: '#/components/responses/ValidationError'
+ *       401:
+ *         $ref: '#/components/responses/UnauthorizedError'
  */
 router.post('/refresh', async (req, res) => {
   try {
@@ -162,8 +340,29 @@ router.post('/refresh', async (req, res) => {
 });
 
 /**
- * GET /api/v1/auth/me
- * Get current user profile
+ * @swagger
+ * /auth/me:
+ *   get:
+ *     summary: Get current user profile
+ *     description: Retrieve the authenticated user's profile information
+ *     tags: [Authentication]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: User profile retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 data:
+ *                   $ref: '#/components/schemas/User'
+ *       401:
+ *         $ref: '#/components/responses/UnauthorizedError'
  */
 router.get('/me', authenticate, async (req, res) => {
   try {
@@ -180,8 +379,53 @@ router.get('/me', authenticate, async (req, res) => {
 });
 
 /**
- * POST /api/v1/auth/change-password
- * Change user password
+ * @swagger
+ * /auth/change-password:
+ *   post:
+ *     summary: Change user password
+ *     description: Change the authenticated user's password
+ *     tags: [Authentication]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - currentPassword
+ *               - newPassword
+ *             properties:
+ *               currentPassword:
+ *                 type: string
+ *                 format: password
+ *                 description: Current password
+ *                 example: OldPass123!
+ *               newPassword:
+ *                 type: string
+ *                 format: password
+ *                 minLength: 8
+ *                 description: New password (minimum 8 characters)
+ *                 example: NewSecurePass456!
+ *     responses:
+ *       200:
+ *         description: Password changed successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 message:
+ *                   type: string
+ *                   example: Password changed successfully
+ *       400:
+ *         $ref: '#/components/responses/ValidationError'
+ *       401:
+ *         $ref: '#/components/responses/UnauthorizedError'
  */
 router.post('/change-password', authenticate, async (req, res) => {
   try {
@@ -217,8 +461,30 @@ router.post('/change-password', authenticate, async (req, res) => {
 });
 
 /**
- * POST /api/v1/auth/logout
- * Logout user (client-side token removal)
+ * @swagger
+ * /auth/logout:
+ *   post:
+ *     summary: Logout user
+ *     description: Logout the authenticated user. In a stateless JWT system, logout is handled client-side by removing the token. This endpoint is provided for consistency and audit logging.
+ *     tags: [Authentication]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Logout successful
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 message:
+ *                   type: string
+ *                   example: Logout successful. Please remove the token from client storage.
+ *       401:
+ *         $ref: '#/components/responses/UnauthorizedError'
  */
 router.post('/logout', authenticate, async (req, res) => {
   try {
