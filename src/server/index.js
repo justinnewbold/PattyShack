@@ -13,6 +13,7 @@ const { errorHandler, notFound } = require('../middleware/errorHandler');
 const { initializePool, testConnection, closePool } = require('../database/pool');
 const { runMigrations } = require('../database/migrate');
 const { seedDatabase } = require('../database/seeds');
+const { autoSeedDemoUsers } = require('../../scripts/autoSeedOnStartup');
 
 // Initialize Express app
 const app = express();
@@ -103,6 +104,9 @@ async function startServer() {
     // Run migrations
     console.log('\n📦 Running database migrations...');
     await runMigrations();
+
+    // Auto-seed demo users if enabled (works in all environments)
+    await autoSeedDemoUsers();
 
     // Seed demo data in development
     if (config.env === 'development' && process.env.SEED_DATABASE !== 'false') {
