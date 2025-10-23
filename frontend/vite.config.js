@@ -5,9 +5,9 @@ import { resolve } from 'path'
 
 export default defineConfig({
   plugins: [react()],
-  root: '.', // frontend root
+  root: '.',
   build: {
-    outDir: '../dist',   // put build output at /dist (server will serve this)
+    outDir: 'dist',     // ✅ make sure this says "dist"
     emptyOutDir: true
   },
   resolve: {
