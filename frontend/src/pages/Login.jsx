@@ -13,6 +13,39 @@ const Login = () => {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
+  // Development mode
+  const isDevMode = import.meta.env.VITE_DEV_MODE === 'true';
+
+  const demoAccounts = [
+    { role: 'Corporate', email: 'justin@pattyshack.com', icon: '👑', color: 'from-purple-500 to-purple-600' },
+    { role: 'Regional', email: 'regional@pattyshack.com', icon: '🌎', color: 'from-blue-500 to-blue-600' },
+    { role: 'District', email: 'district@pattyshack.com', icon: '🏢', color: 'from-green-500 to-green-600' },
+    { role: 'Manager', email: 'manager@pattyshack.com', icon: '👔', color: 'from-orange-500 to-orange-600' },
+    { role: 'Crew', email: 'crew@pattyshack.com', icon: '👨‍🍳', color: 'from-red-500 to-red-600' }
+  ];
+
+  const quickLogin = async (email) => {
+    setLoading(true);
+    setError('');
+
+    try {
+      const result = await login({
+        username: email,
+        password: '123456'
+      });
+
+      if (result.success) {
+        navigate('/dashboard');
+      } else {
+        setError(result.error || 'Quick login failed.');
+      }
+    } catch (err) {
+      setError('An unexpected error occurred.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData(prev => ({
@@ -103,6 +136,40 @@ const Login = () => {
                   </svg>
                   {error}
                 </div>
+              </div>
+            )}
+
+            {/* Dev Mode Quick Login */}
+            {isDevMode && (
+              <div className="bg-yellow-50 border-2 border-yellow-200 rounded-lg p-4">
+                <div className="flex items-center mb-3">
+                  <svg className="w-5 h-5 text-yellow-600 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+                  </svg>
+                  <span className="text-xs font-semibold text-yellow-700">DEV MODE - Quick Login</span>
+                </div>
+                <div className="grid grid-cols-1 gap-2">
+                  {demoAccounts.map((account) => (
+                    <button
+                      key={account.role}
+                      type="button"
+                      onClick={() => quickLogin(account.email)}
+                      disabled={loading}
+                      className={`flex items-center justify-between px-3 py-2 bg-gradient-to-r ${account.color} text-white rounded-lg hover:opacity-90 transition-all disabled:opacity-50 disabled:cursor-not-allowed text-sm font-medium`}
+                    >
+                      <span className="flex items-center">
+                        <span className="text-lg mr-2">{account.icon}</span>
+                        <span>{account.role}</span>
+                      </span>
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                      </svg>
+                    </button>
+                  ))}
+                </div>
+                <p className="text-xs text-yellow-600 mt-3 text-center">
+                  Click any role to login instantly (password: 123456)
+                </p>
               </div>
             )}
 
