@@ -105,9 +105,9 @@ The API server will start on `http://localhost:3000`
 
 ### Frontend Setup
 
-1. Navigate to the client directory:
+1. Navigate to the frontend directory:
 ```bash
-cd client
+cd frontend
 ```
 
 2. Install frontend dependencies:
@@ -137,7 +137,7 @@ To run both backend and frontend:
 npm start
 
 # Terminal 2 - Frontend
-cd client && npm run dev
+cd frontend && npm run dev
 ```
 
 Then visit http://localhost:5173 in your browser.
@@ -268,7 +268,7 @@ PattyShack/
 │   ├── database/           # Database connection & migrations
 │   ├── config/             # Configuration files
 │   └── utils/              # Utility functions
-├── client/                 # Frontend (React/Vite)
+├── frontend/               # Frontend (React/Vite)
 │   ├── src/
 │   │   ├── components/     # Reusable UI components
 │   │   ├── pages/          # Page components (Dashboard, Tasks, etc.)
