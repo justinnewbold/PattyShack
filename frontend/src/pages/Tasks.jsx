@@ -1,8 +1,13 @@
 import { useState, useEffect } from 'react';
 import { tasksService } from '../services/tasksService';
 import { CheckCircle, Clock, AlertCircle, Plus, X, Filter, Trash2 } from 'lucide-react';
+import { useToast } from '../context/ToastContext';
+import { useConfirm } from '../hooks/useConfirm';
+import ConfirmDialog from '../components/ConfirmDialog';
 
 const Tasks = () => {
+  const toast = useToast();
+  const { confirmState, confirm, close } = useConfirm();
   const [tasks, setTasks] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -61,9 +66,10 @@ const Tasks = () => {
         locationId: '',
         assignedTo: ''
       });
+      toast.success('Task created successfully!');
       fetchTasks();
     } catch (err) {
-      alert(err.message || 'Failed to create task');
+      toast.error(err.message || 'Failed to create task');
       console.error('Create task error:', err);
     }
   };
@@ -71,22 +77,31 @@ const Tasks = () => {
   const handleCompleteTask = async (taskId) => {
     try {
       await tasksService.completeTask(taskId);
+      toast.success('Task marked as completed!');
       fetchTasks();
     } catch (err) {
-      alert(err.message || 'Failed to complete task');
+      toast.error(err.message || 'Failed to complete task');
       console.error('Complete task error:', err);
     }
   };
 
   const handleDeleteTask = async (taskId) => {
-    if (!window.confirm('Are you sure you want to delete this task?')) {
-      return;
-    }
+    const confirmed = await confirm({
+      title: 'Delete Task',
+      message: 'Are you sure you want to delete this task? This action cannot be undone.',
+      confirmText: 'Delete',
+      cancelText: 'Cancel',
+      type: 'danger'
+    });
+
+    if (!confirmed) return;
+
     try {
       await tasksService.deleteTask(taskId);
+      toast.success('Task deleted successfully');
       fetchTasks();
     } catch (err) {
-      alert(err.message || 'Failed to delete task');
+      toast.error(err.message || 'Failed to delete task');
       console.error('Delete task error:', err);
     }
   };
@@ -295,8 +310,8 @@ const Tasks = () => {
 
         {/* Create Task Modal */}
         {showCreateModal && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-            <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50 animate-fadeIn">
+            <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto animate-scaleIn">
               <div className="p-6 border-b border-gray-200 flex items-center justify-between">
                 <h2 className="text-2xl font-bold text-gray-900">Create New Task</h2>
                 <button
@@ -417,6 +432,18 @@ const Tasks = () => {
             </div>
           </div>
         )}
+
+        {/* Confirm Dialog */}
+        <ConfirmDialog
+          isOpen={confirmState.isOpen}
+          onClose={close}
+          onConfirm={confirmState.onConfirm}
+          title={confirmState.title}
+          message={confirmState.message}
+          confirmText={confirmState.confirmText}
+          cancelText={confirmState.cancelText}
+          type={confirmState.type}
+        />
       </div>
     </div>
   );

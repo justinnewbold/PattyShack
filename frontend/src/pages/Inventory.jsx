@@ -1,8 +1,10 @@
 import { useState, useEffect } from 'react';
 import inventoryService from '../services/inventoryService';
 import { Package, AlertCircle, TrendingDown, Plus, Filter, X, BarChart3 } from 'lucide-react';
+import { useToast } from '../context/ToastContext';
 
 const Inventory = () => {
+  const toast = useToast();
   const [items, setItems] = useState([]);
   const [variance, setVariance] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -59,7 +61,7 @@ const Inventory = () => {
       setVariance(data);
       setShowVarianceModal(true);
     } catch (err) {
-      alert('Failed to fetch variance report: ' + (err.message || 'Unknown error'));
+      toast.error(err.message || 'Failed to fetch variance report');
     }
   };
 
@@ -73,9 +75,10 @@ const Inventory = () => {
       setShowCountModal(false);
       setCountForm({ item_id: '', quantity: '', notes: '' });
       setSelectedItem(null);
+      toast.success('Inventory count recorded successfully!');
       fetchItems();
     } catch (err) {
-      alert('Failed to record count: ' + (err.message || 'Unknown error'));
+      toast.error(err.message || 'Failed to record count');
     }
   };
 
@@ -89,9 +92,10 @@ const Inventory = () => {
       setShowWasteModal(false);
       setWasteForm({ item_id: '', quantity: '', reason: '', notes: '' });
       setSelectedItem(null);
+      toast.success('Waste logged successfully');
       fetchItems();
     } catch (err) {
-      alert('Failed to log waste: ' + (err.message || 'Unknown error'));
+      toast.error(err.message || 'Failed to log waste');
     }
   };
 

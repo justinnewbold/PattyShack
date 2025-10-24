@@ -1,10 +1,14 @@
 import { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
+import { useKeyboardShortcuts } from '../hooks/useKeyboardShortcuts';
 import Navbar from './Navbar';
 import Sidebar from './Sidebar';
+import Breadcrumbs from './Breadcrumbs';
+import KeyboardShortcutsModal from './KeyboardShortcutsModal';
 
 const Layout = ({ children }) => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  useKeyboardShortcuts();
 
   const toggleSidebar = () => {
     setSidebarOpen(!sidebarOpen);
@@ -22,6 +26,7 @@ const Layout = ({ children }) => {
         {/* Main Content */}
         <main className="flex-1 p-4 md:p-6 lg:p-8 ml-0 md:ml-64 mt-16 transition-all duration-300">
           <div className="max-w-7xl mx-auto">
+            <Breadcrumbs />
             {children}
           </div>
         </main>
@@ -34,6 +39,9 @@ const Layout = ({ children }) => {
           onClick={toggleSidebar}
         />
       )}
+
+      {/* Keyboard Shortcuts Modal */}
+      <KeyboardShortcutsModal />
     </div>
   );
 };

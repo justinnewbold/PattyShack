@@ -23,10 +23,10 @@ const Sidebar = ({ isOpen, toggleSidebar }) => {
   ];
 
   const linkClasses = ({ isActive }) =>
-    `flex items-center space-x-3 px-4 py-3 rounded-lg transition-colors duration-200 ${
+    `flex items-center space-x-3 px-4 py-3 rounded-lg transition-all duration-200 ${
       isActive
-        ? 'bg-blue-600 text-white shadow-md'
-        : 'text-gray-700 hover:bg-gray-100'
+        ? 'bg-blue-600 text-white shadow-lg transform scale-105'
+        : 'text-gray-700 hover:bg-gray-100 hover:translate-x-1'
     }`;
 
   return (
