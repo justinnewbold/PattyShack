@@ -32,6 +32,7 @@ const invoicesRouter = require('../routes/invoices');
 const schedulesRouter = require('../routes/schedules');
 const analyticsRouter = require('../routes/analytics');
 const locationsRouter = require('../routes/locations');
+const authRouter = require('../routes/auth');
 
 app.use(`${config.apiPrefix}/auth`, authRouter);
 app.use(`${config.apiPrefix}/tasks`, tasksRouter);
