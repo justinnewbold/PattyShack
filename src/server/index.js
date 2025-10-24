@@ -23,7 +23,7 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 // Serve built frontend
-const frontendDistPath = path.join(__dirname, '../../frontend/dist');
+const frontendDistPath = path.resolve(__dirname, '../../frontend/dist');
 app.use(express.static(frontendDistPath));
 
 // API routes
@@ -71,8 +71,14 @@ app.get('/api', (req, res) => {
 
 // Fallback: serve frontend for non-API routes
 app.get('*', (req, res, next) => {
+  if (req.method !== 'GET') return next();
   if (req.path.startsWith('/api') || req.path.startsWith('/health')) return next();
-  res.sendFile(path.join(frontendDistPath, 'index.html'));
+
+  res.sendFile('index.html', { root: frontendDistPath }, (err) => {
+    if (err) {
+      next(err);
+    }
+  });
 });
 
 // Errors
