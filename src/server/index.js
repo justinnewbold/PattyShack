@@ -13,6 +13,7 @@ const { initializePool, testConnection, closePool } = require('../database/pool'
 const { runMigrations } = require('../database/migrate');
 const { seedDatabase } = require('../database/seeds');
 const { autoSeedDemoUsers } = require('../../scripts/autoSeedOnStartup');
+const authRouter = require('../routes/auth');
 
 const app = express();
 
@@ -22,7 +23,8 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 // Serve built frontend
-app.use(express.static(path.join(__dirname, '../../dist')));
+const frontendDistPath = path.join(__dirname, '../../frontend/dist');
+app.use(express.static(frontendDistPath));
 
 // API routes
 const tasksRouter = require('../routes/tasks');
@@ -70,7 +72,7 @@ app.get('/api', (req, res) => {
 // Fallback: serve frontend for non-API routes
 app.get('*', (req, res, next) => {
   if (req.path.startsWith('/api') || req.path.startsWith('/health')) return next();
-  res.sendFile(path.join(__dirname, '../../dist/index.html'));
+  res.sendFile(path.join(frontendDistPath, 'index.html'));
 });
 
 // Errors
