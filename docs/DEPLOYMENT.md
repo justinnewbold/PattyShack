@@ -75,6 +75,20 @@ REDIS_PORT=6379
 REDIS_PASSWORD=redis-password
 ```
 
+### Managed Platforms (Vercel/Railway)
+
+When deploying the frontend on platforms such as Vercel or Railway,
+configure the following environment variables through the platform's
+dashboard so that the built client can reach the correct backend:
+
+| Variable | Example Value | Purpose |
+| --- | --- | --- |
+| `VITE_API_URL` | `https://your-api-domain.com/api/v1` | Points the frontend to the deployed backend API |
+| `VITE_DEV_MODE` | `false` | Disables development-only behaviour in production builds |
+
+These values should match the ones in your `.env`/`.env.production`
+files and need to be updated whenever the backend endpoint changes.
+
 ## Deployment Options
 
 ### Option 1: Traditional VPS/Server
