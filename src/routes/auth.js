@@ -6,6 +6,7 @@
 const express = require('express');
 const router = express.Router();
 const AuthService = require('../services/AuthService');
+const AuditLogService = require('../services/AuditLogService');
 const { authenticate } = require('../middleware/auth');
 const { isValidEmail } = require('../utils/validators');
 
@@ -245,6 +246,13 @@ router.post('/login', async (req, res) => {
       password
     });
 
+    // Log successful login for audit trail
+    await AuditLogService.logLogin(
+      result.user.id,
+      result.user.username,
+      req
+    );
+
     res.json({
       success: true,
       data: {
@@ -255,6 +263,13 @@ router.post('/login', async (req, res) => {
       message: 'Login successful'
     });
   } catch (error) {
+    // Log failed login attempt for security monitoring
+    await AuditLogService.logFailedLogin(
+      username || email,
+      req,
+      error.message
+    );
+
     res.status(401).json({
       success: false,
       error: error.message
@@ -488,10 +503,16 @@ router.post('/change-password', authenticate, async (req, res) => {
  */
 router.post('/logout', authenticate, async (req, res) => {
   try {
+    // Log logout event for audit trail
+    await AuditLogService.logLogout(
+      req.user.id,
+      req.user.username,
+      req
+    );
+
     // In a stateless JWT system, logout is handled client-side by removing the token
     // This endpoint is provided for consistency and could be extended to:
     // - Add token to blacklist (requires Redis or database)
-    // - Log logout events for audit trail
 
     res.json({
       success: true,
