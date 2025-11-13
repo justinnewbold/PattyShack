@@ -30,6 +30,31 @@ const GlobalSearch = () => {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
+  // Keyboard shortcut: Ctrl+K or Cmd+K to focus search
+  useEffect(() => {
+    const handleKeyDown = (event) => {
+      if ((event.ctrlKey || event.metaKey) && event.key === 'k') {
+        event.preventDefault();
+        const searchInput = searchRef.current?.querySelector('input');
+        if (searchInput) {
+          searchInput.focus();
+          toast.success('Press ESC to close search');
+        }
+      }
+      // ESC to close search
+      if (event.key === 'Escape') {
+        setIsOpen(false);
+        const searchInput = searchRef.current?.querySelector('input');
+        if (searchInput === document.activeElement) {
+          searchInput.blur();
+        }
+      }
+    };
+
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, []);
+
   // Debounced search
   useEffect(() => {
     if (query.length < 2) {
@@ -112,7 +137,7 @@ const GlobalSearch = () => {
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           onFocus={() => query.length >= 2 && setIsOpen(true)}
-          placeholder="Search tasks, inventory, temperatures..."
+          placeholder="Search... (Ctrl+K or ⌘K)"
           className="block w-full pl-10 pr-10 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
         />
         {query && (

@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import toast from 'react-hot-toast';
 import temperaturesService from '../services/temperaturesService';
 import locationsService from '../services/locationsService';
 import { Thermometer, AlertTriangle, CheckCircle, X, Plus, Filter } from 'lucide-react';
@@ -58,7 +59,9 @@ const Temperatures = () => {
       setAlerts(alertsData);
       setError(null);
     } catch (err) {
-      setError(err.message || 'Failed to fetch temperature data');
+      const errorMsg = err.message || 'Failed to fetch temperature data';
+      setError(errorMsg);
+      toast.error(errorMsg);
     } finally {
       setLoading(false);
     }
@@ -88,18 +91,20 @@ const Temperatures = () => {
         location_id: '',
         notes: ''
       });
+      toast.success('Temperature logged successfully');
       fetchData();
     } catch (err) {
-      alert('Failed to log temperature: ' + (err.message || 'Unknown error'));
+      toast.error('Failed to log temperature: ' + (err.message || 'Unknown error'));
     }
   };
 
   const handleAcknowledge = async (alertId) => {
     try {
       await temperaturesService.acknowledgeAlert(alertId);
+      toast.success('Alert acknowledged');
       fetchData();
     } catch (err) {
-      alert('Failed to acknowledge alert: ' + (err.message || 'Unknown error'));
+      toast.error('Failed to acknowledge alert: ' + (err.message || 'Unknown error'));
     }
   };
 
@@ -110,9 +115,10 @@ const Temperatures = () => {
       setShowResolveModal(false);
       setSelectedAlert(null);
       setResolveForm({ resolution_notes: '', corrective_action: '' });
+      toast.success('Alert resolved successfully');
       fetchData();
     } catch (err) {
-      alert('Failed to resolve alert: ' + (err.message || 'Unknown error'));
+      toast.error('Failed to resolve alert: ' + (err.message || 'Unknown error'));
     }
   };
 

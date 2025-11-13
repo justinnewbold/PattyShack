@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import toast from 'react-hot-toast';
 import { tasksService } from '../services/tasksService';
 import { CheckCircle, Clock, AlertCircle, Plus, X, Filter, Trash2 } from 'lucide-react';
 import ExportButton from '../components/ExportButton';
@@ -42,7 +43,9 @@ const Tasks = () => {
       const response = await tasksService.getTasks(params);
       setTasks(response.data || response || []);
     } catch (err) {
-      setError(err.message || 'Failed to load tasks');
+      const errorMsg = err.message || 'Failed to load tasks';
+      setError(errorMsg);
+      toast.error(errorMsg);
       console.error('Tasks error:', err);
     } finally {
       setLoading(false);
@@ -63,9 +66,10 @@ const Tasks = () => {
         locationId: '',
         assignedTo: ''
       });
+      toast.success('Task created successfully');
       fetchTasks();
     } catch (err) {
-      alert(err.message || 'Failed to create task');
+      toast.error(err.message || 'Failed to create task');
       console.error('Create task error:', err);
     }
   };
@@ -73,9 +77,10 @@ const Tasks = () => {
   const handleCompleteTask = async (taskId) => {
     try {
       await tasksService.completeTask(taskId);
+      toast.success('Task marked as complete');
       fetchTasks();
     } catch (err) {
-      alert(err.message || 'Failed to complete task');
+      toast.error(err.message || 'Failed to complete task');
       console.error('Complete task error:', err);
     }
   };
@@ -86,9 +91,10 @@ const Tasks = () => {
     }
     try {
       await tasksService.deleteTask(taskId);
+      toast.success('Task deleted successfully');
       fetchTasks();
     } catch (err) {
-      alert(err.message || 'Failed to delete task');
+      toast.error(err.message || 'Failed to delete task');
       console.error('Delete task error:', err);
     }
   };

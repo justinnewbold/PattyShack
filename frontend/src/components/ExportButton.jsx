@@ -1,9 +1,11 @@
 import { useState } from 'react';
-import { Download, FileText, FileSpreadsheet } from 'lucide-react';
+import { Download, FileText, FileSpreadsheet, Loader } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 const ExportButton = ({ data, onExportCSV, onExportPDF, disabled = false }) => {
   const [showMenu, setShowMenu] = useState(false);
+  const [isExporting, setIsExporting] = useState(false);
+  const [exportingFormat, setExportingFormat] = useState(null);
 
   const handleExport = async (format) => {
     setShowMenu(false);
@@ -14,6 +16,9 @@ const ExportButton = ({ data, onExportCSV, onExportPDF, disabled = false }) => {
     }
 
     try {
+      setIsExporting(true);
+      setExportingFormat(format);
+
       if (format === 'csv') {
         await onExportCSV();
         toast.success('CSV exported successfully!');
@@ -24,6 +29,9 @@ const ExportButton = ({ data, onExportCSV, onExportPDF, disabled = false }) => {
     } catch (error) {
       console.error('Export error:', error);
       toast.error(`Failed to export ${format.toUpperCase()}: ${error.message}`);
+    } finally {
+      setIsExporting(false);
+      setExportingFormat(null);
     }
   };
 
@@ -31,11 +39,20 @@ const ExportButton = ({ data, onExportCSV, onExportPDF, disabled = false }) => {
     <div className="relative">
       <button
         onClick={() => setShowMenu(!showMenu)}
-        disabled={disabled || !data || data.length === 0}
+        disabled={disabled || !data || data.length === 0 || isExporting}
         className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed shadow-sm"
       >
-        <Download className="h-5 w-5" />
-        <span className="font-medium">Export</span>
+        {isExporting ? (
+          <>
+            <Loader className="h-5 w-5 animate-spin" />
+            <span className="font-medium">Exporting {exportingFormat.toUpperCase()}...</span>
+          </>
+        ) : (
+          <>
+            <Download className="h-5 w-5" />
+            <span className="font-medium">Export</span>
+          </>
+        )}
       </button>
 
       {showMenu && (
