@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react';
 import inventoryService from '../services/inventoryService';
 import { Package, AlertCircle, TrendingDown, Plus, Filter, X, BarChart3 } from 'lucide-react';
+import ExportButton from '../components/ExportButton';
+import { exportInventory } from '../utils/exportUtils';
 
 const Inventory = () => {
   const [items, setItems] = useState([]);
@@ -167,6 +169,11 @@ const Inventory = () => {
             <h1 className="text-3xl font-bold text-gray-900">Inventory Management</h1>
           </div>
           <div className="flex flex-wrap gap-2">
+            <ExportButton
+              data={items}
+              onExportCSV={() => exportInventory(items, 'csv')}
+              onExportPDF={() => exportInventory(items, 'pdf')}
+            />
             <button
               onClick={() => openCountModal()}
               className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"

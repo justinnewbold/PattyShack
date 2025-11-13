@@ -2,6 +2,8 @@ import { useState, useEffect } from 'react';
 import temperaturesService from '../services/temperaturesService';
 import locationsService from '../services/locationsService';
 import { Thermometer, AlertTriangle, CheckCircle, X, Plus, Filter } from 'lucide-react';
+import ExportButton from '../components/ExportButton';
+import { exportTemperatures } from '../utils/exportUtils';
 
 const Temperatures = () => {
   const [logs, setLogs] = useState([]);
@@ -181,13 +183,20 @@ const Temperatures = () => {
             <Thermometer className="w-8 h-8 text-blue-600 mr-3" />
             <h1 className="text-3xl font-bold text-gray-900">Temperature Monitoring</h1>
           </div>
-          <button
-            onClick={() => setShowLogModal(true)}
-            className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-          >
-            <Plus className="w-5 h-5 mr-2" />
-            Log Temperature
-          </button>
+          <div className="flex flex-wrap gap-2">
+            <ExportButton
+              data={logs}
+              onExportCSV={() => exportTemperatures(logs, 'csv')}
+              onExportPDF={() => exportTemperatures(logs, 'pdf')}
+            />
+            <button
+              onClick={() => setShowLogModal(true)}
+              className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+            >
+              <Plus className="w-5 h-5 mr-2" />
+              Log Temperature
+            </button>
+          </div>
         </div>
 
         {/* Filters */}

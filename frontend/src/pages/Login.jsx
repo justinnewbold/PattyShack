@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
+import toast from 'react-hot-toast';
 import { useAuth } from '../context/AuthContext';
 
 const Login = () => {
@@ -35,11 +36,14 @@ const Login = () => {
       });
 
       if (result.success) {
+        toast.success('Welcome back!');
         navigate('/dashboard');
       } else {
+        toast.error(result.error || 'Quick login failed.');
         setError(result.error || 'Quick login failed.');
       }
     } catch (err) {
+      toast.error('An unexpected error occurred.');
       setError('An unexpected error occurred.');
     } finally {
       setLoading(false);
@@ -76,6 +80,7 @@ const Login = () => {
     e.preventDefault();
 
     if (!validateForm()) {
+      toast.error(error);
       return;
     }
 
@@ -89,12 +94,17 @@ const Login = () => {
       });
 
       if (result.success) {
+        toast.success('Login successful!');
         navigate('/dashboard');
       } else {
-        setError(result.error || 'Login failed. Please check your credentials.');
+        const errorMsg = result.error || 'Login failed. Please check your credentials.';
+        toast.error(errorMsg);
+        setError(errorMsg);
       }
     } catch (err) {
-      setError('An unexpected error occurred. Please try again.');
+      const errorMsg = 'An unexpected error occurred. Please try again.';
+      toast.error(errorMsg);
+      setError(errorMsg);
     } finally {
       setLoading(false);
     }

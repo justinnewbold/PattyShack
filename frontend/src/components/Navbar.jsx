@@ -1,6 +1,7 @@
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { Menu, X, User, LogOut } from 'lucide-react';
+import GlobalSearch from './GlobalSearch';
 
 const Navbar = ({ toggleSidebar }) => {
   const { user, logout } = useAuth();
@@ -13,9 +14,9 @@ const Navbar = ({ toggleSidebar }) => {
 
   return (
     <nav className="fixed top-0 left-0 right-0 bg-white shadow-md z-30 h-16">
-      <div className="flex items-center justify-between h-full px-4 md:px-6">
+      <div className="flex items-center justify-between h-full px-4 md:px-6 gap-4">
         {/* Left section - Menu button and Logo */}
-        <div className="flex items-center space-x-4">
+        <div className="flex items-center space-x-4 flex-shrink-0">
           <button
             onClick={toggleSidebar}
             className="p-2 rounded-md hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500 md:hidden"
@@ -30,8 +31,13 @@ const Navbar = ({ toggleSidebar }) => {
           </div>
         </div>
 
+        {/* Middle section - Global Search */}
+        <div className="hidden md:flex flex-1 max-w-2xl">
+          <GlobalSearch />
+        </div>
+
         {/* Right section - User info and logout */}
-        <div className="flex items-center space-x-2 md:space-x-4">
+        <div className="flex items-center space-x-2 md:space-x-4 flex-shrink-0">
           <div className="flex items-center space-x-2 px-3 py-2 rounded-md bg-gray-50">
             <User className="h-5 w-5 text-gray-600" />
             <span className="hidden sm:inline text-sm md:text-base font-medium text-gray-700">

@@ -1,4 +1,6 @@
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+import toast from 'react-hot-toast';
 import { analyticsService } from '../services/analyticsService';
 import { tasksService } from '../services/tasksService';
 import { temperaturesService } from '../services/temperaturesService';
@@ -6,6 +8,7 @@ import { inventoryService } from '../services/inventoryService';
 import { CheckCircle, Clock, AlertTriangle, Package, TrendingUp, Users, DollarSign } from 'lucide-react';
 
 const Dashboard = () => {
+  const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [dashboardData, setDashboardData] = useState(null);
@@ -60,6 +63,11 @@ const Dashboard = () => {
       urgent: 'text-red-500'
     };
     return colors[priority] || 'text-gray-500';
+  };
+
+  const handleQuickAction = (action, path) => {
+    toast.success(`Opening ${action}...`);
+    navigate(path);
   };
 
   if (loading) {
@@ -237,19 +245,31 @@ const Dashboard = () => {
         <div className="bg-white rounded-lg shadow p-6">
           <h2 className="text-xl font-semibold text-gray-900 mb-4">Quick Actions</h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
-            <button className="flex items-center justify-center gap-2 px-4 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
+            <button
+              onClick={() => handleQuickAction('Tasks', '/tasks')}
+              className="flex items-center justify-center gap-2 px-4 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors transform hover:scale-105 active:scale-95"
+            >
               <CheckCircle className="h-5 w-5" />
               <span>New Task</span>
             </button>
-            <button className="flex items-center justify-center gap-2 px-4 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors">
+            <button
+              onClick={() => handleQuickAction('Temperature Log', '/temperatures')}
+              className="flex items-center justify-center gap-2 px-4 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors transform hover:scale-105 active:scale-95"
+            >
               <TrendingUp className="h-5 w-5" />
               <span>Log Temperature</span>
             </button>
-            <button className="flex items-center justify-center gap-2 px-4 py-3 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors">
+            <button
+              onClick={() => handleQuickAction('Inventory', '/inventory')}
+              className="flex items-center justify-center gap-2 px-4 py-3 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors transform hover:scale-105 active:scale-95"
+            >
               <Package className="h-5 w-5" />
               <span>Count Inventory</span>
             </button>
-            <button className="flex items-center justify-center gap-2 px-4 py-3 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors">
+            <button
+              onClick={() => handleQuickAction('Analytics', '/analytics')}
+              className="flex items-center justify-center gap-2 px-4 py-3 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors transform hover:scale-105 active:scale-95"
+            >
               <DollarSign className="h-5 w-5" />
               <span>View Reports</span>
             </button>

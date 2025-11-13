@@ -1,4 +1,5 @@
 import { Navigate, Route, Routes } from 'react-router-dom';
+import { Toaster } from 'react-hot-toast';
 import { useAuth } from './context/AuthContext';
 import Layout from './components/Layout';
 import PrivateRoute from './components/PrivateRoute';
@@ -36,26 +37,52 @@ const App = () => {
   }
 
   return (
-    <Routes>
-      <Route path="/" element={<Navigate to={user ? '/dashboard' : '/login'} replace />} />
-      <Route
-        path="/login"
-        element={user ? <Navigate to="/dashboard" replace /> : <Login />}
+    <>
+      <Toaster
+        position="top-right"
+        toastOptions={{
+          duration: 4000,
+          style: {
+            background: '#363636',
+            color: '#fff',
+          },
+          success: {
+            duration: 3000,
+            iconTheme: {
+              primary: '#10B981',
+              secondary: '#fff',
+            },
+          },
+          error: {
+            duration: 4000,
+            iconTheme: {
+              primary: '#EF4444',
+              secondary: '#fff',
+            },
+          },
+        }}
       />
-      <Route
-        path="/register"
-        element={user ? <Navigate to="/dashboard" replace /> : <Register />}
-      />
-      <Route path="/dashboard" element={renderProtectedRoute(Dashboard)} />
-      <Route path="/tasks" element={renderProtectedRoute(Tasks)} />
-      <Route path="/temperatures" element={renderProtectedRoute(Temperatures)} />
-      <Route path="/inventory" element={renderProtectedRoute(Inventory)} />
-      <Route path="/schedules" element={renderProtectedRoute(Schedules)} />
-      <Route path="/locations" element={renderProtectedRoute(Locations)} />
-      <Route path="/analytics" element={renderProtectedRoute(Analytics)} />
-      <Route path="/invoices" element={renderProtectedRoute(Invoices)} />
-      <Route path="*" element={<Navigate to={user ? '/dashboard' : '/login'} replace />} />
-    </Routes>
+      <Routes>
+        <Route path="/" element={<Navigate to={user ? '/dashboard' : '/login'} replace />} />
+        <Route
+          path="/login"
+          element={user ? <Navigate to="/dashboard" replace /> : <Login />}
+        />
+        <Route
+          path="/register"
+          element={user ? <Navigate to="/dashboard" replace /> : <Register />}
+        />
+        <Route path="/dashboard" element={renderProtectedRoute(Dashboard)} />
+        <Route path="/tasks" element={renderProtectedRoute(Tasks)} />
+        <Route path="/temperatures" element={renderProtectedRoute(Temperatures)} />
+        <Route path="/inventory" element={renderProtectedRoute(Inventory)} />
+        <Route path="/schedules" element={renderProtectedRoute(Schedules)} />
+        <Route path="/locations" element={renderProtectedRoute(Locations)} />
+        <Route path="/analytics" element={renderProtectedRoute(Analytics)} />
+        <Route path="/invoices" element={renderProtectedRoute(Invoices)} />
+        <Route path="*" element={<Navigate to={user ? '/dashboard' : '/login'} replace />} />
+      </Routes>
+    </>
   );
 };
 

@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react';
 import { tasksService } from '../services/tasksService';
 import { CheckCircle, Clock, AlertCircle, Plus, X, Filter, Trash2 } from 'lucide-react';
+import ExportButton from '../components/ExportButton';
+import { exportTasks } from '../utils/exportUtils';
 
 const Tasks = () => {
   const [tasks, setTasks] = useState([]);
@@ -144,13 +146,20 @@ const Tasks = () => {
             <h1 className="text-3xl font-bold text-gray-900">Tasks</h1>
             <p className="text-gray-600 mt-2">Manage and track your tasks</p>
           </div>
-          <button
-            onClick={() => setShowCreateModal(true)}
-            className="flex items-center justify-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-          >
-            <Plus className="h-5 w-5" />
-            <span>New Task</span>
-          </button>
+          <div className="flex items-center gap-3">
+            <ExportButton
+              data={tasks}
+              onExportCSV={() => exportTasks(tasks, 'csv')}
+              onExportPDF={() => exportTasks(tasks, 'pdf')}
+            />
+            <button
+              onClick={() => setShowCreateModal(true)}
+              className="flex items-center justify-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+            >
+              <Plus className="h-5 w-5" />
+              <span>New Task</span>
+            </button>
+          </div>
         </div>
 
         {/* Filters */}
