@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import toast from 'react-hot-toast';
 import { tasksService } from '../services/tasksService';
-import { CheckCircle, Clock, AlertCircle, Plus, X, Filter, Trash2 } from 'lucide-react';
+import { CheckCircle, Clock, AlertCircle, Plus, X, Filter, Trash2, Download } from 'lucide-react';
 import ExportButton from '../components/ExportButton';
 import { exportTasks } from '../utils/exportUtils';
 
@@ -10,6 +10,7 @@ const Tasks = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [showCreateModal, setShowCreateModal] = useState(false);
+  const [selectedTasks, setSelectedTasks] = useState(new Set());
   const [filters, setFilters] = useState({
     status: '',
     priority: '',
@@ -99,6 +100,49 @@ const Tasks = () => {
     }
   };
 
+  const toggleTaskSelection = (taskId) => {
+    const newSelected = new Set(selectedTasks);
+    if (newSelected.has(taskId)) {
+      newSelected.delete(taskId);
+    } else {
+      newSelected.add(taskId);
+    }
+    setSelectedTasks(newSelected);
+  };
+
+  const toggleSelectAll = () => {
+    if (selectedTasks.size === tasks.length) {
+      setSelectedTasks(new Set());
+    } else {
+      setSelectedTasks(new Set(tasks.map(t => t.id)));
+    }
+  };
+
+  const handleBatchDelete = async () => {
+    if (selectedTasks.size === 0) return;
+
+    if (!window.confirm(`Are you sure you want to delete ${selectedTasks.size} task(s)?`)) {
+      return;
+    }
+
+    try {
+      await Promise.all(
+        Array.from(selectedTasks).map(id => tasksService.deleteTask(id))
+      );
+      toast.success(`${selectedTasks.size} task(s) deleted successfully`);
+      setSelectedTasks(new Set());
+      fetchTasks();
+    } catch (err) {
+      toast.error('Failed to delete some tasks');
+      console.error('Batch delete error:', err);
+    }
+  };
+
+  const handleBatchExport = (format) => {
+    const selectedTasksData = tasks.filter(t => selectedTasks.has(t.id));
+    exportTasks(selectedTasksData, format);
+  };
+
   const getStatusBadgeColor = (status) => {
     const colors = {
       pending: 'bg-yellow-100 text-yellow-800 border-yellow-200',
@@ -148,9 +192,24 @@ const Tasks = () => {
       <div className="max-w-7xl mx-auto">
         {/* Header */}
         <div className="mb-8 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-          <div>
-            <h1 className="text-3xl font-bold text-gray-900">Tasks</h1>
-            <p className="text-gray-600 mt-2">Manage and track your tasks</p>
+          <div className="flex items-center gap-4">
+            {tasks.length > 0 && (
+              <label className="flex items-center cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={selectedTasks.size === tasks.length && tasks.length > 0}
+                  onChange={toggleSelectAll}
+                  className="w-5 h-5 text-blue-600 border-gray-300 rounded focus:ring-blue-500 focus:ring-2"
+                />
+                <span className="ml-2 text-sm text-gray-600">
+                  Select All ({selectedTasks.size}/{tasks.length})
+                </span>
+              </label>
+            )}
+            <div>
+              <h1 className="text-3xl font-bold text-gray-900">Tasks</h1>
+              <p className="text-gray-600 mt-2">Manage and track your tasks</p>
+            </div>
           </div>
           <div className="flex items-center gap-3">
             <ExportButton
@@ -230,11 +289,18 @@ const Tasks = () => {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {tasks.length > 0 ? (
             tasks.map((task) => (
-              <div key={task.id} className="bg-white rounded-lg shadow hover:shadow-lg transition-shadow">
+              <div key={task.id} className={`bg-white rounded-lg shadow hover:shadow-lg transition-all ${selectedTasks.has(task.id) ? 'ring-2 ring-blue-500' : ''}`}>
                 <div className="p-6">
-                  {/* Task Header */}
+                  {/* Task Header with Checkbox */}
                   <div className="flex items-start justify-between mb-4">
                     <div className="flex items-start gap-3 flex-1">
+                      <input
+                        type="checkbox"
+                        checked={selectedTasks.has(task.id)}
+                        onChange={() => toggleTaskSelection(task.id)}
+                        className="mt-1 w-5 h-5 text-blue-600 border-gray-300 rounded focus:ring-blue-500 focus:ring-2"
+                        onClick={(e) => e.stopPropagation()}
+                      />
                       {getStatusIcon(task.status)}
                       <div className="flex-1">
                         <h3 className="font-semibold text-gray-900 text-lg">{task.title}</h3>
@@ -307,6 +373,46 @@ const Tasks = () => {
             </div>
           )}
         </div>
+
+        {/* Batch Actions Bar */}
+        {selectedTasks.size > 0 && (
+          <div className="fixed bottom-8 left-1/2 transform -translate-x-1/2 z-40">
+            <div className="bg-gray-900 text-white rounded-lg shadow-2xl px-6 py-4 flex items-center gap-4">
+              <span className="font-medium">
+                {selectedTasks.size} task(s) selected
+              </span>
+              <div className="h-6 w-px bg-gray-700" />
+              <button
+                onClick={() => handleBatchExport('csv')}
+                className="flex items-center gap-2 px-4 py-2 bg-green-600 hover:bg-green-700 rounded-lg transition-colors"
+              >
+                <Download className="h-4 w-4" />
+                <span>Export CSV</span>
+              </button>
+              <button
+                onClick={() => handleBatchExport('pdf')}
+                className="flex items-center gap-2 px-4 py-2 bg-green-600 hover:bg-green-700 rounded-lg transition-colors"
+              >
+                <Download className="h-4 w-4" />
+                <span>Export PDF</span>
+              </button>
+              <button
+                onClick={handleBatchDelete}
+                className="flex items-center gap-2 px-4 py-2 bg-red-600 hover:bg-red-700 rounded-lg transition-colors"
+              >
+                <Trash2 className="h-4 w-4" />
+                <span>Delete</span>
+              </button>
+              <button
+                onClick={() => setSelectedTasks(new Set())}
+                className="flex items-center gap-2 px-4 py-2 bg-gray-700 hover:bg-gray-600 rounded-lg transition-colors"
+              >
+                <X className="h-4 w-4" />
+                <span>Clear</span>
+              </button>
+            </div>
+          </div>
+        )}
 
         {/* Create Task Modal */}
         {showCreateModal && (
