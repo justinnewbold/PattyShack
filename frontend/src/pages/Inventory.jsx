@@ -1,12 +1,16 @@
 import { useState, useEffect } from 'react';
+import toast from 'react-hot-toast';
 import inventoryService from '../services/inventoryService';
-import { Package, AlertCircle, TrendingDown, Plus, Filter, X, BarChart3 } from 'lucide-react';
+import { Package, AlertCircle, TrendingDown, Plus, Filter, X, BarChart3, Trash2, Download } from 'lucide-react';
+import ExportButton from '../components/ExportButton';
+import { exportInventory } from '../utils/exportUtils';
 
 const Inventory = () => {
   const [items, setItems] = useState([]);
   const [variance, setVariance] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [selectedItems, setSelectedItems] = useState(new Set());
 
   // Filters
   const [categoryFilter, setCategoryFilter] = useState('');
@@ -47,7 +51,9 @@ const Inventory = () => {
       setItems(data);
       setError(null);
     } catch (err) {
-      setError(err.message || 'Failed to fetch inventory data');
+      const errorMsg = err.message || 'Failed to fetch inventory data';
+      setError(errorMsg);
+      toast.error(errorMsg);
     } finally {
       setLoading(false);
     }
@@ -58,8 +64,9 @@ const Inventory = () => {
       const data = await inventoryService.getVariance();
       setVariance(data);
       setShowVarianceModal(true);
+      toast.success('Variance report loaded successfully');
     } catch (err) {
-      alert('Failed to fetch variance report: ' + (err.message || 'Unknown error'));
+      toast.error('Failed to fetch variance report: ' + (err.message || 'Unknown error'));
     }
   };
 
@@ -73,9 +80,10 @@ const Inventory = () => {
       setShowCountModal(false);
       setCountForm({ item_id: '', quantity: '', notes: '' });
       setSelectedItem(null);
+      toast.success('Inventory count recorded successfully');
       fetchItems();
     } catch (err) {
-      alert('Failed to record count: ' + (err.message || 'Unknown error'));
+      toast.error('Failed to record count: ' + (err.message || 'Unknown error'));
     }
   };
 
@@ -89,9 +97,10 @@ const Inventory = () => {
       setShowWasteModal(false);
       setWasteForm({ item_id: '', quantity: '', reason: '', notes: '' });
       setSelectedItem(null);
+      toast.success('Waste logged successfully');
       fetchItems();
     } catch (err) {
-      alert('Failed to log waste: ' + (err.message || 'Unknown error'));
+      toast.error('Failed to log waste: ' + (err.message || 'Unknown error'));
     }
   };
 
@@ -109,6 +118,29 @@ const Inventory = () => {
       setWasteForm({ ...wasteForm, item_id: item.id });
     }
     setShowWasteModal(true);
+  };
+
+  const toggleItemSelection = (itemId) => {
+    const newSelected = new Set(selectedItems);
+    if (newSelected.has(itemId)) {
+      newSelected.delete(itemId);
+    } else {
+      newSelected.add(itemId);
+    }
+    setSelectedItems(newSelected);
+  };
+
+  const toggleSelectAll = () => {
+    if (selectedItems.size === items.length) {
+      setSelectedItems(new Set());
+    } else {
+      setSelectedItems(new Set(items.map(i => i.id)));
+    }
+  };
+
+  const handleBatchExport = (format) => {
+    const selectedItemsData = items.filter(i => selectedItems.has(i.id));
+    exportInventory(selectedItemsData, format);
   };
 
   const isLowStock = (item) => {
@@ -161,12 +193,32 @@ const Inventory = () => {
     <div className="min-h-screen bg-gray-50 p-4 md:p-6 lg:p-8">
       <div className="max-w-7xl mx-auto">
         {/* Header */}
-        <div className="mb-6 flex flex-col md:flex-row md:items-center md:justify-between">
-          <div className="flex items-center mb-4 md:mb-0">
-            <Package className="w-8 h-8 text-blue-600 mr-3" />
-            <h1 className="text-3xl font-bold text-gray-900">Inventory Management</h1>
+        <div className="mb-6 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+          <div className="flex items-center gap-4">
+            {items.length > 0 && (
+              <label className="flex items-center cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={selectedItems.size === items.length && items.length > 0}
+                  onChange={toggleSelectAll}
+                  className="w-5 h-5 text-blue-600 border-gray-300 rounded focus:ring-blue-500 focus:ring-2"
+                />
+                <span className="ml-2 text-sm text-gray-600">
+                  Select All ({selectedItems.size}/{items.length})
+                </span>
+              </label>
+            )}
+            <div className="flex items-center">
+              <Package className="w-8 h-8 text-blue-600 mr-3" />
+              <h1 className="text-3xl font-bold text-gray-900">Inventory Management</h1>
+            </div>
           </div>
           <div className="flex flex-wrap gap-2">
+            <ExportButton
+              data={items}
+              onExportCSV={() => exportInventory(items, 'csv')}
+              onExportPDF={() => exportInventory(items, 'pdf')}
+            />
             <button
               onClick={() => openCountModal()}
               className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
@@ -245,6 +297,9 @@ const Inventory = () => {
                 <table className="w-full">
                   <thead className="bg-gray-50 border-b-2 border-gray-200">
                     <tr>
+                      <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider w-10">
+                        <span className="sr-only">Select</span>
+                      </th>
                       <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
                         Item
                       </th>
@@ -272,8 +327,17 @@ const Inventory = () => {
                     {items.map((item) => (
                       <tr
                         key={item.id}
-                        className={`hover:bg-gray-50 transition-colors ${isLowStock(item) ? 'bg-yellow-50' : ''}`}
+                        className={`hover:bg-gray-50 transition-all ${selectedItems.has(item.id) ? 'bg-blue-50' : isLowStock(item) ? 'bg-yellow-50' : ''}`}
                       >
+                        <td className="px-4 py-3">
+                          <input
+                            type="checkbox"
+                            checked={selectedItems.has(item.id)}
+                            onChange={() => toggleItemSelection(item.id)}
+                            className="w-5 h-5 text-blue-600 border-gray-300 rounded focus:ring-blue-500 focus:ring-2"
+                            onClick={(e) => e.stopPropagation()}
+                          />
+                        </td>
                         <td className="px-4 py-3 text-sm font-medium text-gray-900">
                           {item.name}
                         </td>
@@ -323,16 +387,25 @@ const Inventory = () => {
                 {items.map((item) => (
                   <div
                     key={item.id}
-                    className={`border rounded-lg p-4 ${isLowStock(item) ? 'border-yellow-400 bg-yellow-50' : 'border-gray-200'}`}
+                    className={`border rounded-lg p-4 ${selectedItems.has(item.id) ? 'border-blue-500 bg-blue-50' : isLowStock(item) ? 'border-yellow-400 bg-yellow-50' : 'border-gray-200'}`}
                   >
                     <div className="flex items-start justify-between mb-3">
-                      <div className="flex-1">
-                        <h3 className="font-semibold text-gray-900 mb-1">{item.name}</h3>
-                        {item.category && (
-                          <span className="text-xs text-gray-600 bg-gray-100 px-2 py-1 rounded">
-                            {item.category}
-                          </span>
-                        )}
+                      <div className="flex items-start gap-3 flex-1">
+                        <input
+                          type="checkbox"
+                          checked={selectedItems.has(item.id)}
+                          onChange={() => toggleItemSelection(item.id)}
+                          className="mt-1 w-5 h-5 text-blue-600 border-gray-300 rounded focus:ring-blue-500 focus:ring-2"
+                          onClick={(e) => e.stopPropagation()}
+                        />
+                        <div className="flex-1">
+                          <h3 className="font-semibold text-gray-900 mb-1">{item.name}</h3>
+                          {item.category && (
+                            <span className="text-xs text-gray-600 bg-gray-100 px-2 py-1 rounded">
+                              {item.category}
+                            </span>
+                          )}
+                        </div>
                       </div>
                       <span className={`px-2 py-1 text-xs font-semibold rounded-full ${getStockStatusColor(item)}`}>
                         {getStockStatusText(item)}
@@ -381,6 +454,39 @@ const Inventory = () => {
             </>
           )}
         </div>
+
+        {/* Batch Actions Bar */}
+        {selectedItems.size > 0 && (
+          <div className="fixed bottom-8 left-1/2 transform -translate-x-1/2 z-40">
+            <div className="bg-gray-900 text-white rounded-lg shadow-2xl px-6 py-4 flex items-center gap-4">
+              <span className="font-medium">
+                {selectedItems.size} item(s) selected
+              </span>
+              <div className="h-6 w-px bg-gray-700" />
+              <button
+                onClick={() => handleBatchExport('csv')}
+                className="flex items-center gap-2 px-4 py-2 bg-green-600 hover:bg-green-700 rounded-lg transition-colors"
+              >
+                <Download className="h-4 w-4" />
+                <span>Export CSV</span>
+              </button>
+              <button
+                onClick={() => handleBatchExport('pdf')}
+                className="flex items-center gap-2 px-4 py-2 bg-green-600 hover:bg-green-700 rounded-lg transition-colors"
+              >
+                <Download className="h-4 w-4" />
+                <span>Export PDF</span>
+              </button>
+              <button
+                onClick={() => setSelectedItems(new Set())}
+                className="flex items-center gap-2 px-4 py-2 bg-gray-700 hover:bg-gray-600 rounded-lg transition-colors"
+              >
+                <X className="h-4 w-4" />
+                <span>Clear</span>
+              </button>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Record Count Modal */}

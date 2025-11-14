@@ -1,7 +1,10 @@
 import { useState, useEffect } from 'react';
+import toast from 'react-hot-toast';
 import temperaturesService from '../services/temperaturesService';
 import locationsService from '../services/locationsService';
 import { Thermometer, AlertTriangle, CheckCircle, X, Plus, Filter } from 'lucide-react';
+import ExportButton from '../components/ExportButton';
+import { exportTemperatures } from '../utils/exportUtils';
 
 const Temperatures = () => {
   const [logs, setLogs] = useState([]);
@@ -56,7 +59,9 @@ const Temperatures = () => {
       setAlerts(alertsData);
       setError(null);
     } catch (err) {
-      setError(err.message || 'Failed to fetch temperature data');
+      const errorMsg = err.message || 'Failed to fetch temperature data';
+      setError(errorMsg);
+      toast.error(errorMsg);
     } finally {
       setLoading(false);
     }
@@ -86,18 +91,20 @@ const Temperatures = () => {
         location_id: '',
         notes: ''
       });
+      toast.success('Temperature logged successfully');
       fetchData();
     } catch (err) {
-      alert('Failed to log temperature: ' + (err.message || 'Unknown error'));
+      toast.error('Failed to log temperature: ' + (err.message || 'Unknown error'));
     }
   };
 
   const handleAcknowledge = async (alertId) => {
     try {
       await temperaturesService.acknowledgeAlert(alertId);
+      toast.success('Alert acknowledged');
       fetchData();
     } catch (err) {
-      alert('Failed to acknowledge alert: ' + (err.message || 'Unknown error'));
+      toast.error('Failed to acknowledge alert: ' + (err.message || 'Unknown error'));
     }
   };
 
@@ -108,9 +115,10 @@ const Temperatures = () => {
       setShowResolveModal(false);
       setSelectedAlert(null);
       setResolveForm({ resolution_notes: '', corrective_action: '' });
+      toast.success('Alert resolved successfully');
       fetchData();
     } catch (err) {
-      alert('Failed to resolve alert: ' + (err.message || 'Unknown error'));
+      toast.error('Failed to resolve alert: ' + (err.message || 'Unknown error'));
     }
   };
 
@@ -181,13 +189,20 @@ const Temperatures = () => {
             <Thermometer className="w-8 h-8 text-blue-600 mr-3" />
             <h1 className="text-3xl font-bold text-gray-900">Temperature Monitoring</h1>
           </div>
-          <button
-            onClick={() => setShowLogModal(true)}
-            className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-          >
-            <Plus className="w-5 h-5 mr-2" />
-            Log Temperature
-          </button>
+          <div className="flex flex-wrap gap-2">
+            <ExportButton
+              data={logs}
+              onExportCSV={() => exportTemperatures(logs, 'csv')}
+              onExportPDF={() => exportTemperatures(logs, 'pdf')}
+            />
+            <button
+              onClick={() => setShowLogModal(true)}
+              className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+            >
+              <Plus className="w-5 h-5 mr-2" />
+              Log Temperature
+            </button>
+          </div>
         </div>
 
         {/* Filters */}
