@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react';
 import analyticsService from '../services/analyticsService';
-import { BarChart3, TrendingUp, AlertCircle } from 'lucide-react';
+import { BarChart3, TrendingUp, AlertCircle, Download, Loader } from 'lucide-react';
+import { exportData } from '../utils/exportUtils';
+import toast from 'react-hot-toast';
 import {
   LineChart,
   BarChart,
@@ -31,6 +33,8 @@ const Analytics = () => {
     startDate: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
     endDate: new Date().toISOString().split('T')[0]
   });
+  const [isExporting, setIsExporting] = useState(false);
+  const [exportingFormat, setExportingFormat] = useState(null);
 
   useEffect(() => {
     fetchAnalyticsData();
@@ -75,6 +79,87 @@ const Analytics = () => {
     }));
   };
 
+  const handleExportReport = async (format) => {
+    if (!reportData) {
+      toast.error('No report data to export');
+      return;
+    }
+
+    try {
+      setIsExporting(true);
+      setExportingFormat(format);
+
+      // Prepare data for export based on what's available
+      let exportableData = [];
+      let columns = [];
+      let title = `${selectedReport.charAt(0).toUpperCase() + selectedReport.slice(1)} Report`;
+      let filename = `${selectedReport}_report`;
+
+      // Export distribution data if available
+      if (reportData.distribution && reportData.distribution.length > 0) {
+        exportableData = reportData.distribution;
+        columns = [
+          { key: 'name', label: 'Category' },
+          { key: 'value', label: 'Value' }
+        ];
+      }
+      // Export summary data if available
+      else if (reportData.summary) {
+        exportableData = Object.entries(reportData.summary).map(([key, value]) => ({
+          metric: key.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase()),
+          value: value
+        }));
+        columns = [
+          { key: 'metric', label: 'Metric' },
+          { key: 'value', label: 'Value' }
+        ];
+      }
+
+      if (exportableData.length === 0) {
+        toast.error('No data available to export');
+        return;
+      }
+
+      exportData(exportableData, filename, title, columns, format);
+      toast.success(`Report exported as ${format.toUpperCase()}`);
+    } catch (err) {
+      toast.error(`Failed to export: ${err.message}`);
+      console.error('Export error:', err);
+    } finally {
+      setIsExporting(false);
+      setExportingFormat(null);
+    }
+  };
+
+  const handleExportLocationData = async (format) => {
+    if (!locationData || locationData.length === 0) {
+      toast.error('No location data to export');
+      return;
+    }
+
+    try {
+      setIsExporting(true);
+      setExportingFormat(format);
+
+      const columns = [
+        { key: 'name', label: 'Location' },
+        { key: 'sales', label: 'Sales' },
+        { key: 'tasks', label: 'Tasks Completed' },
+        { key: 'revenue', label: 'Revenue' },
+        { key: 'efficiency', label: 'Efficiency' }
+      ];
+
+      exportData(locationData, 'location_comparison', 'Location Performance Comparison', columns, format);
+      toast.success(`Location data exported as ${format.toUpperCase()}`);
+    } catch (err) {
+      toast.error(`Failed to export: ${err.message}`);
+      console.error('Export error:', err);
+    } finally {
+      setIsExporting(false);
+      setExportingFormat(null);
+    }
+  };
+
   if (loading && !dashboardData) {
     return (
       <div className="flex items-center justify-center h-96">
@@ -106,26 +191,71 @@ const Analytics = () => {
           <p className="text-gray-600 mt-1">Track performance and insights across all locations</p>
         </div>
 
-        {/* Date Range Picker */}
-        <div className="flex flex-col sm:flex-row gap-2">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Start Date</label>
-            <input
-              type="date"
-              value={dateRange.startDate}
-              onChange={(e) => handleDateRangeChange('startDate', e.target.value)}
-              className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
+        <div className="flex flex-col sm:flex-row gap-3">
+          {/* Date Range Picker */}
+          <div className="flex flex-col sm:flex-row gap-2">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Start Date</label>
+              <input
+                type="date"
+                value={dateRange.startDate}
+                onChange={(e) => handleDateRangeChange('startDate', e.target.value)}
+                className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">End Date</label>
+              <input
+                type="date"
+                value={dateRange.endDate}
+                onChange={(e) => handleDateRangeChange('endDate', e.target.value)}
+                className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+            </div>
           </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">End Date</label>
-            <input
-              type="date"
-              value={dateRange.endDate}
-              onChange={(e) => handleDateRangeChange('endDate', e.target.value)}
-              className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
-          </div>
+
+          {/* Export Location Data Button */}
+          {locationData && locationData.length > 0 && (
+            <div className="relative">
+              <label className="block text-sm font-medium text-gray-700 mb-1">Export Data</label>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => handleExportLocationData('csv')}
+                  disabled={isExporting}
+                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                >
+                  {isExporting && exportingFormat === 'csv' ? (
+                    <>
+                      <Loader className="h-4 w-4 animate-spin" />
+                      <span>CSV</span>
+                    </>
+                  ) : (
+                    <>
+                      <Download className="h-4 w-4" />
+                      <span>CSV</span>
+                    </>
+                  )}
+                </button>
+                <button
+                  onClick={() => handleExportLocationData('pdf')}
+                  disabled={isExporting}
+                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                >
+                  {isExporting && exportingFormat === 'pdf' ? (
+                    <>
+                      <Loader className="h-4 w-4 animate-spin" />
+                      <span>PDF</span>
+                    </>
+                  ) : (
+                    <>
+                      <Download className="h-4 w-4" />
+                      <span>PDF</span>
+                    </>
+                  )}
+                </button>
+              </div>
+            </div>
+          )}
         </div>
       </div>
 
@@ -287,18 +417,43 @@ const Analytics = () => {
               )}
             </div>
 
-            {/* Export Options Placeholder */}
+            {/* Export Options */}
             <div className="border-t pt-4 mt-4">
               <h3 className="text-md font-semibold text-gray-800 mb-3">Export Options</h3>
-              <div className="flex gap-2">
-                <button className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors">
-                  Export as PDF
+              <div className="flex flex-wrap gap-2">
+                <button
+                  onClick={() => handleExportReport('pdf')}
+                  disabled={isExporting}
+                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                >
+                  {isExporting && exportingFormat === 'pdf' ? (
+                    <>
+                      <Loader className="h-4 w-4 animate-spin" />
+                      <span>Exporting PDF...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Download className="h-4 w-4" />
+                      <span>Export as PDF</span>
+                    </>
+                  )}
                 </button>
-                <button className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors">
-                  Export as CSV
-                </button>
-                <button className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors">
-                  Export as Excel
+                <button
+                  onClick={() => handleExportReport('csv')}
+                  disabled={isExporting}
+                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                >
+                  {isExporting && exportingFormat === 'csv' ? (
+                    <>
+                      <Loader className="h-4 w-4 animate-spin" />
+                      <span>Exporting CSV...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Download className="h-4 w-4" />
+                      <span>Export as CSV</span>
+                    </>
+                  )}
                 </button>
               </div>
             </div>
