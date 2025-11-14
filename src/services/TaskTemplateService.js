@@ -234,6 +234,43 @@ class TaskTemplateService {
     return await TaskService.createTask(mergedTaskData);
   }
 
+  async createTasksFromTemplateBulk(templateId, locationsData) {
+    const template = await this.getTemplateById(templateId);
+    if (!template) {
+      throw new Error('Template not found');
+    }
+
+    const TaskService = require('./TaskService');
+
+    // Create task data for each location
+    const tasksData = locationsData.map(locationData => ({
+      title: locationData.title || template.name,
+      description: locationData.description || template.description,
+      type: template.type,
+      category: template.category,
+      priority: locationData.priority || template.priority,
+      requiresPhotoVerification: template.requiresPhotoVerification,
+      requiresSignature: template.requiresSignature,
+      checklistItems: template.checklistItems,
+      notes: template.instructions,
+      templateId: templateId,
+      metadata: {
+        ...template.metadata,
+        fromTemplate: templateId,
+        templateName: template.name
+      },
+      // Location-specific fields
+      locationId: locationData.locationId,
+      assignedTo: locationData.assignedTo || null,
+      dueDate: locationData.dueDate || null,
+      recurring: locationData.recurring || false,
+      recurrencePattern: locationData.recurrencePattern || null,
+      recurrenceInterval: locationData.recurrenceInterval || null
+    }));
+
+    return await TaskService.createBulkTasks(tasksData);
+  }
+
   async getTemplateUsageStats(templateId) {
     const pool = getPool();
 

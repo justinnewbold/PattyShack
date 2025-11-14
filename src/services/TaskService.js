@@ -394,6 +394,124 @@ class TaskService {
 
     return result.rows.length > 0 ? this.formatTask(result.rows[0]) : null;
   }
+
+  async createBulkTasks(tasksData) {
+    const pool = getPool();
+    const client = await pool.connect();
+
+    try {
+      await client.query('BEGIN');
+
+      const createdTasks = [];
+
+      for (const taskData of tasksData) {
+        const task = {
+          id: `task-${Date.now()}-${Math.random().toString(36).substring(7)}`,
+          title: taskData.title,
+          description: taskData.description || null,
+          type: taskData.type,
+          category: taskData.category || null,
+          location_id: taskData.locationId,
+          assigned_to: taskData.assignedTo || null,
+          priority: taskData.priority || 'medium',
+          status: taskData.status || 'pending',
+          due_date: taskData.dueDate || null,
+          recurring: taskData.recurring || false,
+          recurrence_pattern: taskData.recurrencePattern || null,
+          recurrence_interval: taskData.recurrenceInterval || null,
+          requires_photo_verification: taskData.requiresPhotoVerification || false,
+          requires_signature: taskData.requiresSignature || false,
+          checklist_items: JSON.stringify(taskData.checklistItems || []),
+          notes: taskData.notes || '',
+          template_id: taskData.templateId || null,
+          metadata: JSON.stringify(taskData.metadata || {})
+        };
+
+        const result = await client.query(`
+          INSERT INTO tasks (
+            id, title, description, type, category, location_id, assigned_to,
+            priority, status, due_date, recurring, recurrence_pattern, recurrence_interval,
+            requires_photo_verification, requires_signature, checklist_items, notes, template_id, metadata
+          ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19)
+          RETURNING *
+        `, [
+          task.id, task.title, task.description, task.type, task.category,
+          task.location_id, task.assigned_to, task.priority, task.status, task.due_date,
+          task.recurring, task.recurrence_pattern, task.recurrence_interval,
+          task.requires_photo_verification, task.requires_signature,
+          task.checklist_items, task.notes, task.template_id, task.metadata
+        ]);
+
+        createdTasks.push(this.formatTask(result.rows[0]));
+      }
+
+      await client.query('COMMIT');
+      return createdTasks;
+    } catch (error) {
+      await client.query('ROLLBACK');
+      throw error;
+    } finally {
+      client.release();
+    }
+  }
+
+  async bulkAssignTasks(taskIds, assignedTo) {
+    const pool = getPool();
+
+    if (!Array.isArray(taskIds) || taskIds.length === 0) {
+      throw new Error('Task IDs must be a non-empty array');
+    }
+
+    const placeholders = taskIds.map((_, i) => `$${i + 1}`).join(',');
+
+    const result = await pool.query(`
+      UPDATE tasks
+      SET assigned_to = $${taskIds.length + 1}, updated_at = CURRENT_TIMESTAMP
+      WHERE id IN (${placeholders})
+      RETURNING *
+    `, [...taskIds, assignedTo]);
+
+    return result.rows.map(row => this.formatTask(row));
+  }
+
+  async bulkUpdateStatus(taskIds, status) {
+    const pool = getPool();
+
+    if (!Array.isArray(taskIds) || taskIds.length === 0) {
+      throw new Error('Task IDs must be a non-empty array');
+    }
+
+    const placeholders = taskIds.map((_, i) => `$${i + 1}`).join(',');
+
+    const result = await pool.query(`
+      UPDATE tasks
+      SET status = $${taskIds.length + 1}, updated_at = CURRENT_TIMESTAMP
+      WHERE id IN (${placeholders})
+      RETURNING *
+    `, [...taskIds, status]);
+
+    return result.rows.map(row => this.formatTask(row));
+  }
+
+  async bulkDeleteTasks(taskIds) {
+    const pool = getPool();
+
+    if (!Array.isArray(taskIds) || taskIds.length === 0) {
+      throw new Error('Task IDs must be a non-empty array');
+    }
+
+    const placeholders = taskIds.map((_, i) => `$${i + 1}`).join(',');
+
+    const result = await pool.query(
+      `DELETE FROM tasks WHERE id IN (${placeholders}) RETURNING id`,
+      taskIds
+    );
+
+    return {
+      deletedCount: result.rows.length,
+      deletedIds: result.rows.map(row => row.id)
+    };
+  }
 }
 
 module.exports = new TaskService();

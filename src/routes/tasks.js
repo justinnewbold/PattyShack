@@ -639,4 +639,277 @@ router.post('/:id/photos', upload.single('photo'), async (req, res, next) => {
   }
 });
 
+/**
+ * @swagger
+ * /tasks/bulk:
+ *   post:
+ *     summary: Create multiple tasks at once
+ *     description: Bulk create tasks across multiple locations
+ *     tags: [Tasks]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - tasks
+ *             properties:
+ *               tasks:
+ *                 type: array
+ *                 items:
+ *                   type: object
+ *                   required:
+ *                     - title
+ *                     - type
+ *                     - locationId
+ *                   properties:
+ *                     title:
+ *                       type: string
+ *                     description:
+ *                       type: string
+ *                     type:
+ *                       type: string
+ *                     locationId:
+ *                       type: string
+ *                     assignedTo:
+ *                       type: string
+ *                     priority:
+ *                       type: string
+ *                     dueDate:
+ *                       type: string
+ *     responses:
+ *       201:
+ *         description: Tasks created successfully
+ *       400:
+ *         description: Validation error
+ */
+router.post('/bulk', async (req, res, next) => {
+  try {
+    const { tasks } = req.body;
+
+    if (!tasks || !Array.isArray(tasks) || tasks.length === 0) {
+      return res.status(400).json({
+        success: false,
+        error: 'Tasks array is required and must not be empty'
+      });
+    }
+
+    // Validate each task
+    for (const task of tasks) {
+      if (!task.title || !task.title.trim()) {
+        return res.status(400).json({
+          success: false,
+          error: 'All tasks must have a title'
+        });
+      }
+
+      if (!task.type) {
+        return res.status(400).json({
+          success: false,
+          error: 'All tasks must have a type'
+        });
+      }
+
+      if (!validators.isValidTaskType(task.type)) {
+        return res.status(400).json({
+          success: false,
+          error: `Invalid task type: ${task.type}`
+        });
+      }
+
+      if (!task.locationId) {
+        return res.status(400).json({
+          success: false,
+          error: 'All tasks must have a locationId'
+        });
+      }
+    }
+
+    const createdTasks = await TaskService.createBulkTasks(tasks);
+
+    res.status(201).json({
+      success: true,
+      data: {
+        tasks: createdTasks,
+        count: createdTasks.length
+      }
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+/**
+ * @swagger
+ * /tasks/bulk/assign:
+ *   put:
+ *     summary: Bulk assign tasks to a user
+ *     description: Reassign multiple tasks to a specific user
+ *     tags: [Tasks]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - taskIds
+ *               - assignedTo
+ *             properties:
+ *               taskIds:
+ *                 type: array
+ *                 items:
+ *                   type: string
+ *               assignedTo:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Tasks reassigned successfully
+ */
+router.put('/bulk/assign', async (req, res, next) => {
+  try {
+    const { taskIds, assignedTo } = req.body;
+
+    if (!taskIds || !Array.isArray(taskIds) || taskIds.length === 0) {
+      return res.status(400).json({
+        success: false,
+        error: 'taskIds array is required and must not be empty'
+      });
+    }
+
+    if (!assignedTo) {
+      return res.status(400).json({
+        success: false,
+        error: 'assignedTo is required'
+      });
+    }
+
+    const updatedTasks = await TaskService.bulkAssignTasks(taskIds, assignedTo);
+
+    res.json({
+      success: true,
+      data: {
+        tasks: updatedTasks,
+        count: updatedTasks.length
+      }
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+/**
+ * @swagger
+ * /tasks/bulk/status:
+ *   put:
+ *     summary: Bulk update task status
+ *     description: Update status for multiple tasks at once
+ *     tags: [Tasks]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - taskIds
+ *               - status
+ *             properties:
+ *               taskIds:
+ *                 type: array
+ *                 items:
+ *                   type: string
+ *               status:
+ *                 type: string
+ *                 enum: [pending, in_progress, completed, failed, overdue]
+ *     responses:
+ *       200:
+ *         description: Task statuses updated successfully
+ */
+router.put('/bulk/status', async (req, res, next) => {
+  try {
+    const { taskIds, status } = req.body;
+
+    if (!taskIds || !Array.isArray(taskIds) || taskIds.length === 0) {
+      return res.status(400).json({
+        success: false,
+        error: 'taskIds array is required and must not be empty'
+      });
+    }
+
+    if (!status) {
+      return res.status(400).json({
+        success: false,
+        error: 'status is required'
+      });
+    }
+
+    if (!validators.isValidTaskStatus(status)) {
+      return res.status(400).json({
+        success: false,
+        error: 'Invalid status value'
+      });
+    }
+
+    const updatedTasks = await TaskService.bulkUpdateStatus(taskIds, status);
+
+    res.json({
+      success: true,
+      data: {
+        tasks: updatedTasks,
+        count: updatedTasks.length
+      }
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+/**
+ * @swagger
+ * /tasks/bulk:
+ *   delete:
+ *     summary: Bulk delete tasks
+ *     description: Delete multiple tasks at once
+ *     tags: [Tasks]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - taskIds
+ *             properties:
+ *               taskIds:
+ *                 type: array
+ *                 items:
+ *                   type: string
+ *     responses:
+ *       200:
+ *         description: Tasks deleted successfully
+ */
+router.delete('/bulk', async (req, res, next) => {
+  try {
+    const { taskIds } = req.body;
+
+    if (!taskIds || !Array.isArray(taskIds) || taskIds.length === 0) {
+      return res.status(400).json({
+        success: false,
+        error: 'taskIds array is required and must not be empty'
+      });
+    }
+
+    const result = await TaskService.bulkDeleteTasks(taskIds);
+
+    res.json({
+      success: true,
+      data: result
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
 module.exports = router;

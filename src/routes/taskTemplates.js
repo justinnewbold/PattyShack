@@ -353,6 +353,91 @@ router.post('/:id/use', async (req, res, next) => {
 
 /**
  * @swagger
+ * /task-templates/{id}/use-bulk:
+ *   post:
+ *     summary: Create tasks from template across multiple locations
+ *     description: Bulk create tasks from a template for multiple locations
+ *     tags: [Task Templates]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - locations
+ *             properties:
+ *               locations:
+ *                 type: array
+ *                 items:
+ *                   type: object
+ *                   required:
+ *                     - locationId
+ *                   properties:
+ *                     locationId:
+ *                       type: string
+ *                     assignedTo:
+ *                       type: string
+ *                     dueDate:
+ *                       type: string
+ *                     priority:
+ *                       type: string
+ *     responses:
+ *       201:
+ *         description: Tasks created from template successfully
+ *       404:
+ *         description: Template not found
+ */
+router.post('/:id/use-bulk', async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const { locations } = req.body;
+
+    if (!locations || !Array.isArray(locations) || locations.length === 0) {
+      return res.status(400).json({
+        success: false,
+        error: 'locations array is required and must not be empty'
+      });
+    }
+
+    // Validate each location entry has locationId
+    for (const location of locations) {
+      if (!location.locationId) {
+        return res.status(400).json({
+          success: false,
+          error: 'All location entries must have a locationId'
+        });
+      }
+    }
+
+    const tasks = await TaskTemplateService.createTasksFromTemplateBulk(id, locations);
+
+    res.status(201).json({
+      success: true,
+      data: {
+        tasks,
+        count: tasks.length
+      }
+    });
+  } catch (error) {
+    if (error.message === 'Template not found') {
+      return res.status(404).json({
+        success: false,
+        error: error.message
+      });
+    }
+    next(error);
+  }
+});
+
+/**
+ * @swagger
  * /task-templates/{id}/stats:
  *   get:
  *     summary: Get template usage statistics
