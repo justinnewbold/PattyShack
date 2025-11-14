@@ -7,7 +7,6 @@ const express = require('express');
 const cors = require('cors');
 const config = require('../src/config/app');
 const { errorHandler, notFound } = require('../src/middleware/errorHandler');
-const { initializePool } = require('../src/database/pool');
 
 const app = express();
 
@@ -15,13 +14,6 @@ const app = express();
 app.use(cors(config.cors));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
-
-// Initialize database pool (happens once on cold start)
-let poolInitialized = false;
-if (!poolInitialized) {
-  initializePool();
-  poolInitialized = true;
-}
 
 // API routes
 const tasksRouter = require('../src/routes/tasks');

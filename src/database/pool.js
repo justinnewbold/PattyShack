@@ -28,7 +28,8 @@ function initializePool() {
  */
 function getPool() {
   if (!pool) {
-    throw new Error('Database pool not initialized. Call initializePool() first.');
+    // Auto-initialize in serverless environments
+    initializePool();
   }
   return pool;
 }
