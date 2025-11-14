@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { Menu, X, User, LogOut, Search } from 'lucide-react';
+import { Menu, X, User, LogOut, Search, Settings } from 'lucide-react';
 import GlobalSearch from './GlobalSearch';
 
 const Navbar = ({ toggleSidebar }) => {
@@ -55,6 +55,13 @@ const Navbar = ({ toggleSidebar }) => {
               {user?.name || user?.email}
             </span>
           </div>
+          <button
+            onClick={() => navigate('/settings')}
+            className="p-2 rounded-md hover:bg-gray-100 text-gray-600 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            aria-label="Settings"
+          >
+            <Settings className="h-5 w-5" />
+          </button>
           <button
             onClick={handleLogout}
             className="flex items-center space-x-2 px-3 py-2 rounded-md bg-red-50 hover:bg-red-100 text-red-600 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-red-500"

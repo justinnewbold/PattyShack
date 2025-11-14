@@ -2,6 +2,7 @@ import { lazy, Suspense } from 'react';
 import { Navigate, Route, Routes } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
 import { useAuth } from './context/AuthContext';
+import { UserPreferencesProvider } from './context/UserPreferencesContext';
 import Layout from './components/Layout';
 import PrivateRoute from './components/PrivateRoute';
 
@@ -14,6 +15,7 @@ const Schedules = lazy(() => import('./pages/Schedules'));
 const Locations = lazy(() => import('./pages/Locations'));
 const Analytics = lazy(() => import('./pages/Analytics'));
 const Invoices = lazy(() => import('./pages/Invoices'));
+const Settings = lazy(() => import('./pages/Settings'));
 const Login = lazy(() => import('./pages/Login'));
 const Register = lazy(() => import('./pages/Register'));
 
@@ -50,7 +52,7 @@ const App = () => {
   }
 
   return (
-    <>
+    <UserPreferencesProvider>
       <Toaster
         position="top-right"
         toastOptions={{
@@ -94,10 +96,11 @@ const App = () => {
         <Route path="/locations" element={renderProtectedRoute(Locations)} />
         <Route path="/analytics" element={renderProtectedRoute(Analytics)} />
         <Route path="/invoices" element={renderProtectedRoute(Invoices)} />
+        <Route path="/settings" element={renderProtectedRoute(Settings)} />
         <Route path="*" element={<Navigate to={user ? '/dashboard' : '/login'} replace />} />
         </Routes>
       </Suspense>
-    </>
+    </UserPreferencesProvider>
   );
 };
 
