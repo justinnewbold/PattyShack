@@ -38,6 +38,7 @@ const enhancedInventoryRouter = require('../routes/enhancedInventory');
 const invoicesRouter = require('../routes/invoices');
 const schedulesRouter = require('../routes/schedules');
 const analyticsRouter = require('../routes/analytics');
+const enhancedAnalyticsRouter = require('../routes/enhancedAnalytics');
 const locationsRouter = require('../routes/locations');
 const authRouter = require('../routes/auth');
 
@@ -53,6 +54,7 @@ app.use(`${config.apiPrefix}/inventory`, enhancedInventoryRouter);
 app.use(`${config.apiPrefix}/invoices`, invoicesRouter);
 app.use(`${config.apiPrefix}/schedules`, schedulesRouter);
 app.use(`${config.apiPrefix}/analytics`, analyticsRouter);
+app.use(`${config.apiPrefix}/analytics`, enhancedAnalyticsRouter);
 app.use(`${config.apiPrefix}/locations`, locationsRouter);
 
 // Health endpoint
