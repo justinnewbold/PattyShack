@@ -32,11 +32,18 @@ const taskTemplatesRouter = require('../routes/taskTemplates');
 const taskDependenciesRouter = require('../routes/taskDependencies');
 const taskEnhancementsRouter = require('../routes/taskEnhancements');
 const temperaturesRouter = require('../routes/temperatures');
+const enhancedTemperaturesRouter = require('../routes/enhancedTemperatures');
 const inventoryRouter = require('../routes/inventory');
+const enhancedInventoryRouter = require('../routes/enhancedInventory');
 const invoicesRouter = require('../routes/invoices');
 const schedulesRouter = require('../routes/schedules');
+const schedulingRouter = require('../routes/scheduling');
 const analyticsRouter = require('../routes/analytics');
+const enhancedAnalyticsRouter = require('../routes/enhancedAnalytics');
 const locationsRouter = require('../routes/locations');
+const integrationsRouter = require('../routes/integrations');
+const exportsRouter = require('../routes/exports');
+const userManagementRouter = require('../routes/userManagement');
 const authRouter = require('../routes/auth');
 
 app.use(`${config.apiPrefix}/auth`, authRouter);
@@ -45,10 +52,17 @@ app.use(`${config.apiPrefix}/tasks`, taskDependenciesRouter);
 app.use(`${config.apiPrefix}/tasks`, taskEnhancementsRouter);
 app.use(`${config.apiPrefix}/task-templates`, taskTemplatesRouter);
 app.use(`${config.apiPrefix}/temperatures`, temperaturesRouter);
+app.use(`${config.apiPrefix}/temperatures`, enhancedTemperaturesRouter);
 app.use(`${config.apiPrefix}/inventory`, inventoryRouter);
+app.use(`${config.apiPrefix}/inventory`, enhancedInventoryRouter);
 app.use(`${config.apiPrefix}/invoices`, invoicesRouter);
 app.use(`${config.apiPrefix}/schedules`, schedulesRouter);
+app.use(`${config.apiPrefix}/scheduling`, schedulingRouter);
 app.use(`${config.apiPrefix}/analytics`, analyticsRouter);
+app.use(`${config.apiPrefix}/analytics`, enhancedAnalyticsRouter);
+app.use(`${config.apiPrefix}/integrations`, integrationsRouter);
+app.use(`${config.apiPrefix}/exports`, exportsRouter);
+app.use(`${config.apiPrefix}/user-management`, userManagementRouter);
 app.use(`${config.apiPrefix}/locations`, locationsRouter);
 
 // Health endpoint
