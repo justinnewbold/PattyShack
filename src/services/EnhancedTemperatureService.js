@@ -236,7 +236,7 @@ class EnhancedTemperatureService {
   }
 
   // Equipment Maintenance
-  async scheduleMainten ance(maintenanceData) {
+  async scheduleMaintenance(maintenanceData) {
     const pool = getPool();
     const id = `maint-${Date.now()}-${Math.random().toString(36).substring(7)}`;
 
