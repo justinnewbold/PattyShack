@@ -4,7 +4,7 @@
  */
 
 const { getPool } = require('../database/pool');
-const bcrypt = require('bcryptjs');
+const bcrypt = require('bcrypt');
 const crypto = require('crypto');
 
 class UserManagementService {
