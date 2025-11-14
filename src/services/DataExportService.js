@@ -6,7 +6,7 @@
 const { getPool } = require('../database/pool');
 const fs = require('fs').promises;
 const path = require('path');
-const { Parser } = require('json2csv');
+const { Parser } = require('@json2csv/plainjs');
 
 class DataExportService {
   constructor() {
