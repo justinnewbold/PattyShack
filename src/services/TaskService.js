@@ -158,37 +158,56 @@ class TaskService {
 
   async completeTask(id, completionData) {
     const pool = getPool();
+    const client = await pool.connect();
 
-    // Get the task first to check if it's recurring
-    const task = await this.getTaskById(id);
-    if (!task) return null;
+    try {
+      // Start transaction
+      await client.query('BEGIN');
 
-    const result = await pool.query(`
-      UPDATE tasks
-      SET
-        status = 'completed',
-        completed_at = NOW(),
-        completed_by = $1,
-        photo_urls = $2,
-        signature_url = $3,
-        notes = $4,
-        updated_at = NOW()
-      WHERE id = $5
-      RETURNING *
-    `, [
-      completionData.userId,
-      JSON.stringify(completionData.photos || []),
-      completionData.signature || null,
-      completionData.notes || '',
-      id
-    ]);
+      // Get the task first to check if it's recurring
+      const task = await this.getTaskById(id);
+      if (!task) {
+        await client.query('ROLLBACK');
+        return null;
+      }
 
-    // Trigger next occurrence if recurring
-    if (task.recurring) {
-      await this.createNextRecurrence(task);
+      const result = await client.query(`
+        UPDATE tasks
+        SET
+          status = 'completed',
+          completed_at = NOW(),
+          completed_by = $1,
+          photo_urls = $2,
+          signature_url = $3,
+          notes = $4,
+          updated_at = NOW()
+        WHERE id = $5
+        RETURNING *
+      `, [
+        completionData.userId,
+        JSON.stringify(completionData.photos || []),
+        completionData.signature || null,
+        completionData.notes || '',
+        id
+      ]);
+
+      // Trigger next occurrence if recurring
+      if (task.recurring) {
+        await this.createNextRecurrence(task);
+      }
+
+      // Commit transaction
+      await client.query('COMMIT');
+
+      return this.formatTask(result.rows[0]);
+    } catch (error) {
+      // Rollback on error
+      await client.query('ROLLBACK');
+      throw error;
+    } finally {
+      // Release the client back to the pool
+      client.release();
     }
-
-    return this.formatTask(result.rows[0]);
   }
 
   async deleteTask(id) {
@@ -345,6 +364,33 @@ class TaskService {
       createdAt: row.created_at,
       updatedAt: row.updated_at
     };
+  }
+
+  async addPhoto(taskId, photoUrl) {
+    const pool = getPool();
+
+    // Get current task to append to existing photos
+    const taskResult = await pool.query(
+      'SELECT photo_urls FROM tasks WHERE id = $1',
+      [taskId]
+    );
+
+    if (taskResult.rows.length === 0) {
+      return null;
+    }
+
+    const currentPhotos = taskResult.rows[0].photo_urls || [];
+    const updatedPhotos = [...currentPhotos, photoUrl];
+
+    const result = await pool.query(
+      `UPDATE tasks
+       SET photo_urls = $1, updated_at = CURRENT_TIMESTAMP
+       WHERE id = $2
+       RETURNING *`,
+      [JSON.stringify(updatedPhotos), taskId]
+    );
+
+    return result.rows.length > 0 ? this.formatTask(result.rows[0]) : null;
   }
 }
 

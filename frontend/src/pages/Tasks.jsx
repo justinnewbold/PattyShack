@@ -1,8 +1,10 @@
 import { useState, useEffect } from 'react';
 import { tasksService } from '../services/tasksService';
+import { useAuth } from '../context/AuthContext';
 import { CheckCircle, Clock, AlertCircle, Plus, X, Filter, Trash2 } from 'lucide-react';
 
 const Tasks = () => {
+  const { user } = useAuth();
   const [tasks, setTasks] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -70,7 +72,7 @@ const Tasks = () => {
 
   const handleCompleteTask = async (taskId) => {
     try {
-      await tasksService.completeTask(taskId);
+      await tasksService.completeTask(taskId, { userId: user?.id });
       fetchTasks();
     } catch (err) {
       alert(err.message || 'Failed to complete task');

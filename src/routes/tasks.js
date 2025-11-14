@@ -4,10 +4,28 @@
  */
 
 const express = require('express');
+const multer = require('multer');
 const TaskService = require('../services/TaskService');
 const validators = require('../utils/validators');
 
 const router = express.Router();
+
+// Configure multer for file uploads
+const storage = multer.memoryStorage();
+const upload = multer({
+  storage,
+  limits: {
+    fileSize: 10 * 1024 * 1024, // 10 MB
+  },
+  fileFilter: (req, file, cb) => {
+    const allowedTypes = ['image/jpeg', 'image/png', 'image/gif', 'application/pdf'];
+    if (allowedTypes.includes(file.mimetype)) {
+      cb(null, true);
+    } else {
+      cb(new Error('Invalid file type. Only JPEG, PNG, GIF, and PDF allowed.'));
+    }
+  },
+});
 
 const normalizePagination = (value, defaultValue) => {
   const parsed = parseInt(value, 10);
@@ -527,6 +545,94 @@ router.delete('/:id', async (req, res, next) => {
     res.json({
       success: true,
       message: 'Task deleted successfully'
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+/**
+ * @swagger
+ * /tasks/{id}/photos:
+ *   post:
+ *     summary: Upload photo for a task
+ *     description: Upload a photo attachment for task verification
+ *     tags: [Tasks]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: Task ID
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         multipart/form-data:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - photo
+ *             properties:
+ *               photo:
+ *                 type: string
+ *                 format: binary
+ *                 description: Photo file (JPEG, PNG, GIF, or PDF, max 10MB)
+ *     responses:
+ *       200:
+ *         description: Photo uploaded successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     photoUrl:
+ *                       type: string
+ *                       description: URL or path to uploaded photo
+ *                     task:
+ *                       $ref: '#/components/schemas/Task'
+ *       400:
+ *         $ref: '#/components/responses/ValidationError'
+ *       404:
+ *         $ref: '#/components/responses/NotFoundError'
+ */
+router.post('/:id/photos', upload.single('photo'), async (req, res, next) => {
+  try {
+    const { id } = req.params;
+
+    if (!req.file) {
+      return res.status(400).json({
+        success: false,
+        error: 'No photo file provided'
+      });
+    }
+
+    // In production, you would upload to S3, Cloudinary, or similar
+    // For now, we'll store the base64 encoded image
+    const photoBase64 = req.file.buffer.toString('base64');
+    const photoUrl = `data:${req.file.mimetype};base64,${photoBase64}`;
+
+    const task = await TaskService.addPhoto(id, photoUrl);
+
+    if (!task) {
+      return res.status(404).json({
+        success: false,
+        error: 'Task not found'
+      });
+    }
+
+    res.json({
+      success: true,
+      data: {
+        photoUrl,
+        task
+      }
     });
   } catch (error) {
     next(error);

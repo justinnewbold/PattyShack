@@ -12,6 +12,7 @@ import RegisterScreen from '../screens/Auth/RegisterScreen';
 import DashboardScreen from '../screens/Dashboard/DashboardScreen';
 import TasksScreen from '../screens/Tasks/TasksScreen';
 import TaskDetailScreen from '../screens/Tasks/TaskDetailScreen';
+import CreateTaskScreen from '../screens/Tasks/CreateTaskScreen';
 import TemperaturesScreen from '../screens/Temperatures/TemperaturesScreen';
 import LogTemperatureScreen from '../screens/Temperatures/LogTemperatureScreen';
 import InventoryScreen from '../screens/Inventory/InventoryScreen';
@@ -79,6 +80,7 @@ export default function AppNavigator() {
         <>
           <Stack.Screen name="Main" component={MainTabs} />
           <Stack.Screen name="TaskDetail" component={TaskDetailScreen} />
+          <Stack.Screen name="CreateTask" component={CreateTaskScreen} />
           <Stack.Screen name="LogTemperature" component={LogTemperatureScreen} />
           <Stack.Screen name="InventoryCount" component={InventoryCountScreen} />
           <Stack.Screen name="Schedules" component={SchedulesScreen} />
