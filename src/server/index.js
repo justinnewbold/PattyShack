@@ -28,6 +28,7 @@ app.use(express.static(frontendDistPath));
 
 // API routes
 const tasksRouter = require('../routes/tasks');
+const taskTemplatesRouter = require('../routes/taskTemplates');
 const temperaturesRouter = require('../routes/temperatures');
 const inventoryRouter = require('../routes/inventory');
 const invoicesRouter = require('../routes/invoices');
@@ -38,6 +39,7 @@ const authRouter = require('../routes/auth');
 
 app.use(`${config.apiPrefix}/auth`, authRouter);
 app.use(`${config.apiPrefix}/tasks`, tasksRouter);
+app.use(`${config.apiPrefix}/task-templates`, taskTemplatesRouter);
 app.use(`${config.apiPrefix}/temperatures`, temperaturesRouter);
 app.use(`${config.apiPrefix}/inventory`, inventoryRouter);
 app.use(`${config.apiPrefix}/invoices`, invoicesRouter);

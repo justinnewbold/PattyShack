@@ -32,6 +32,7 @@ class TaskService {
       requires_signature: taskData.requiresSignature || false,
       checklist_items: JSON.stringify(taskData.checklistItems || []),
       notes: taskData.notes || '',
+      template_id: taskData.templateId || null,
       metadata: JSON.stringify(taskData.metadata || {})
     };
 
@@ -39,15 +40,15 @@ class TaskService {
       INSERT INTO tasks (
         id, title, description, type, category, location_id, assigned_to,
         priority, status, due_date, recurring, recurrence_pattern, recurrence_interval,
-        requires_photo_verification, requires_signature, checklist_items, notes, metadata
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18)
+        requires_photo_verification, requires_signature, checklist_items, notes, template_id, metadata
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19)
       RETURNING *
     `, [
       task.id, task.title, task.description, task.type, task.category,
       task.location_id, task.assigned_to, task.priority, task.status, task.due_date,
       task.recurring, task.recurrence_pattern, task.recurrence_interval,
       task.requires_photo_verification, task.requires_signature,
-      task.checklist_items, task.notes, task.metadata
+      task.checklist_items, task.notes, task.template_id, task.metadata
     ]);
 
     return this.formatTask(result.rows[0]);
@@ -360,6 +361,7 @@ class TaskService {
       checklistItems: row.checklist_items || [],
       notes: row.notes,
       correctiveActions: row.corrective_actions || [],
+      templateId: row.template_id,
       metadata: row.metadata || {},
       createdAt: row.created_at,
       updatedAt: row.updated_at
