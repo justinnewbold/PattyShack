@@ -26,8 +26,8 @@ export const tasksService = {
   },
 
   // Complete task
-  async completeTask(id) {
-    const response = await api.patch(`/tasks/${id}/complete`);
+  async completeTask(id, completionData = {}) {
+    const response = await api.post(`/tasks/${id}/complete`, completionData);
     return response.data;
   },
 

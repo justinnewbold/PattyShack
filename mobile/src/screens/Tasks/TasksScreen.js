@@ -143,9 +143,7 @@ export default function TasksScreen({ navigation }) {
       <FAB
         icon="plus"
         style={styles.fab}
-        onPress={() => {
-          /* TODO: Add create task screen */
-        }}
+        onPress={() => navigation.navigate('CreateTask')}
       />
     </View>
   );

@@ -32,6 +32,7 @@ class TaskService {
       requires_signature: taskData.requiresSignature || false,
       checklist_items: JSON.stringify(taskData.checklistItems || []),
       notes: taskData.notes || '',
+      template_id: taskData.templateId || null,
       metadata: JSON.stringify(taskData.metadata || {})
     };
 
@@ -39,15 +40,15 @@ class TaskService {
       INSERT INTO tasks (
         id, title, description, type, category, location_id, assigned_to,
         priority, status, due_date, recurring, recurrence_pattern, recurrence_interval,
-        requires_photo_verification, requires_signature, checklist_items, notes, metadata
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18)
+        requires_photo_verification, requires_signature, checklist_items, notes, template_id, metadata
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19)
       RETURNING *
     `, [
       task.id, task.title, task.description, task.type, task.category,
       task.location_id, task.assigned_to, task.priority, task.status, task.due_date,
       task.recurring, task.recurrence_pattern, task.recurrence_interval,
       task.requires_photo_verification, task.requires_signature,
-      task.checklist_items, task.notes, task.metadata
+      task.checklist_items, task.notes, task.template_id, task.metadata
     ]);
 
     return this.formatTask(result.rows[0]);
@@ -158,37 +159,72 @@ class TaskService {
 
   async completeTask(id, completionData) {
     const pool = getPool();
+    const client = await pool.connect();
 
-    // Get the task first to check if it's recurring
-    const task = await this.getTaskById(id);
-    if (!task) return null;
+    try {
+      // Start transaction
+      await client.query('BEGIN');
 
-    const result = await pool.query(`
-      UPDATE tasks
-      SET
-        status = 'completed',
-        completed_at = NOW(),
-        completed_by = $1,
-        photo_urls = $2,
-        signature_url = $3,
-        notes = $4,
-        updated_at = NOW()
-      WHERE id = $5
-      RETURNING *
-    `, [
-      completionData.userId,
-      JSON.stringify(completionData.photos || []),
-      completionData.signature || null,
-      completionData.notes || '',
-      id
-    ]);
+      // Get the task first to check if it's recurring
+      const task = await this.getTaskById(id);
+      if (!task) {
+        await client.query('ROLLBACK');
+        return null;
+      }
 
-    // Trigger next occurrence if recurring
-    if (task.recurring) {
-      await this.createNextRecurrence(task);
+      // Check if task dependencies are met (unless force flag is set)
+      if (!completionData.force) {
+        const readinessCheck = await client.query(`
+          SELECT is_ready, blocking_count
+          FROM task_readiness
+          WHERE task_id = $1
+        `, [id]);
+
+        if (readinessCheck.rows.length > 0 && !readinessCheck.rows[0].is_ready) {
+          await client.query('ROLLBACK');
+          throw new Error(
+            `Cannot complete task: ${readinessCheck.rows[0].blocking_count} prerequisite task(s) must be completed first`
+          );
+        }
+      }
+
+      const result = await client.query(`
+        UPDATE tasks
+        SET
+          status = 'completed',
+          completed_at = NOW(),
+          completed_by = $1,
+          photo_urls = $2,
+          signature_url = $3,
+          notes = $4,
+          updated_at = NOW()
+        WHERE id = $5
+        RETURNING *
+      `, [
+        completionData.userId,
+        JSON.stringify(completionData.photos || []),
+        completionData.signature || null,
+        completionData.notes || '',
+        id
+      ]);
+
+      // Trigger next occurrence if recurring
+      if (task.recurring) {
+        await this.createNextRecurrence(task);
+      }
+
+      // Commit transaction
+      await client.query('COMMIT');
+
+      return this.formatTask(result.rows[0]);
+    } catch (error) {
+      // Rollback on error
+      await client.query('ROLLBACK');
+      throw error;
+    } finally {
+      // Release the client back to the pool
+      client.release();
     }
-
-    return this.formatTask(result.rows[0]);
   }
 
   async deleteTask(id) {
@@ -341,9 +377,155 @@ class TaskService {
       checklistItems: row.checklist_items || [],
       notes: row.notes,
       correctiveActions: row.corrective_actions || [],
+      templateId: row.template_id,
       metadata: row.metadata || {},
       createdAt: row.created_at,
       updatedAt: row.updated_at
+    };
+  }
+
+  async addPhoto(taskId, photoUrl) {
+    const pool = getPool();
+
+    // Get current task to append to existing photos
+    const taskResult = await pool.query(
+      'SELECT photo_urls FROM tasks WHERE id = $1',
+      [taskId]
+    );
+
+    if (taskResult.rows.length === 0) {
+      return null;
+    }
+
+    const currentPhotos = taskResult.rows[0].photo_urls || [];
+    const updatedPhotos = [...currentPhotos, photoUrl];
+
+    const result = await pool.query(
+      `UPDATE tasks
+       SET photo_urls = $1, updated_at = CURRENT_TIMESTAMP
+       WHERE id = $2
+       RETURNING *`,
+      [JSON.stringify(updatedPhotos), taskId]
+    );
+
+    return result.rows.length > 0 ? this.formatTask(result.rows[0]) : null;
+  }
+
+  async createBulkTasks(tasksData) {
+    const pool = getPool();
+    const client = await pool.connect();
+
+    try {
+      await client.query('BEGIN');
+
+      const createdTasks = [];
+
+      for (const taskData of tasksData) {
+        const task = {
+          id: `task-${Date.now()}-${Math.random().toString(36).substring(7)}`,
+          title: taskData.title,
+          description: taskData.description || null,
+          type: taskData.type,
+          category: taskData.category || null,
+          location_id: taskData.locationId,
+          assigned_to: taskData.assignedTo || null,
+          priority: taskData.priority || 'medium',
+          status: taskData.status || 'pending',
+          due_date: taskData.dueDate || null,
+          recurring: taskData.recurring || false,
+          recurrence_pattern: taskData.recurrencePattern || null,
+          recurrence_interval: taskData.recurrenceInterval || null,
+          requires_photo_verification: taskData.requiresPhotoVerification || false,
+          requires_signature: taskData.requiresSignature || false,
+          checklist_items: JSON.stringify(taskData.checklistItems || []),
+          notes: taskData.notes || '',
+          template_id: taskData.templateId || null,
+          metadata: JSON.stringify(taskData.metadata || {})
+        };
+
+        const result = await client.query(`
+          INSERT INTO tasks (
+            id, title, description, type, category, location_id, assigned_to,
+            priority, status, due_date, recurring, recurrence_pattern, recurrence_interval,
+            requires_photo_verification, requires_signature, checklist_items, notes, template_id, metadata
+          ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19)
+          RETURNING *
+        `, [
+          task.id, task.title, task.description, task.type, task.category,
+          task.location_id, task.assigned_to, task.priority, task.status, task.due_date,
+          task.recurring, task.recurrence_pattern, task.recurrence_interval,
+          task.requires_photo_verification, task.requires_signature,
+          task.checklist_items, task.notes, task.template_id, task.metadata
+        ]);
+
+        createdTasks.push(this.formatTask(result.rows[0]));
+      }
+
+      await client.query('COMMIT');
+      return createdTasks;
+    } catch (error) {
+      await client.query('ROLLBACK');
+      throw error;
+    } finally {
+      client.release();
+    }
+  }
+
+  async bulkAssignTasks(taskIds, assignedTo) {
+    const pool = getPool();
+
+    if (!Array.isArray(taskIds) || taskIds.length === 0) {
+      throw new Error('Task IDs must be a non-empty array');
+    }
+
+    const placeholders = taskIds.map((_, i) => `$${i + 1}`).join(',');
+
+    const result = await pool.query(`
+      UPDATE tasks
+      SET assigned_to = $${taskIds.length + 1}, updated_at = CURRENT_TIMESTAMP
+      WHERE id IN (${placeholders})
+      RETURNING *
+    `, [...taskIds, assignedTo]);
+
+    return result.rows.map(row => this.formatTask(row));
+  }
+
+  async bulkUpdateStatus(taskIds, status) {
+    const pool = getPool();
+
+    if (!Array.isArray(taskIds) || taskIds.length === 0) {
+      throw new Error('Task IDs must be a non-empty array');
+    }
+
+    const placeholders = taskIds.map((_, i) => `$${i + 1}`).join(',');
+
+    const result = await pool.query(`
+      UPDATE tasks
+      SET status = $${taskIds.length + 1}, updated_at = CURRENT_TIMESTAMP
+      WHERE id IN (${placeholders})
+      RETURNING *
+    `, [...taskIds, status]);
+
+    return result.rows.map(row => this.formatTask(row));
+  }
+
+  async bulkDeleteTasks(taskIds) {
+    const pool = getPool();
+
+    if (!Array.isArray(taskIds) || taskIds.length === 0) {
+      throw new Error('Task IDs must be a non-empty array');
+    }
+
+    const placeholders = taskIds.map((_, i) => `$${i + 1}`).join(',');
+
+    const result = await pool.query(
+      `DELETE FROM tasks WHERE id IN (${placeholders}) RETURNING id`,
+      taskIds
+    );
+
+    return {
+      deletedCount: result.rows.length,
+      deletedIds: result.rows.map(row => row.id)
     };
   }
 }
