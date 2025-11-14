@@ -17,6 +17,16 @@
   -moz-osx-font-smoothing: grayscale;
 }
 
+/* Dark mode base styles */
+.dark {
+  color-scheme: dark;
+}
+
+.dark body {
+  background-color: #1f2937;
+  color: #f9fafb;
+}
+
 a {
   font-weight: 500;
   color: #646cff;
@@ -114,4 +124,42 @@ body {
 
 .animation-delay-4000 {
   animation-delay: 4s;
+}
+
+/* Dark mode utilities - Additional helper classes */
+@layer utilities {
+  /* Text colors for dark mode */
+  .dark-text-primary {
+    @apply dark:text-gray-100;
+  }
+
+  .dark-text-secondary {
+    @apply dark:text-gray-300;
+  }
+
+  .dark-text-muted {
+    @apply dark:text-gray-400;
+  }
+
+  /* Background colors for dark mode */
+  .dark-bg-primary {
+    @apply dark:bg-gray-800;
+  }
+
+  .dark-bg-secondary {
+    @apply dark:bg-gray-700;
+  }
+
+  .dark-bg-elevated {
+    @apply dark:bg-gray-900;
+  }
+
+  /* Border colors for dark mode */
+  .dark-border {
+    @apply dark:border-gray-700;
+  }
+
+  .dark-border-subtle {
+    @apply dark:border-gray-800;
+  }
 }
