@@ -41,6 +41,8 @@ const schedulingRouter = require('../routes/scheduling');
 const analyticsRouter = require('../routes/analytics');
 const enhancedAnalyticsRouter = require('../routes/enhancedAnalytics');
 const locationsRouter = require('../routes/locations');
+const integrationsRouter = require('../routes/integrations');
+const exportsRouter = require('../routes/exports');
 const authRouter = require('../routes/auth');
 
 app.use(`${config.apiPrefix}/auth`, authRouter);
@@ -57,6 +59,8 @@ app.use(`${config.apiPrefix}/schedules`, schedulesRouter);
 app.use(`${config.apiPrefix}/scheduling`, schedulingRouter);
 app.use(`${config.apiPrefix}/analytics`, analyticsRouter);
 app.use(`${config.apiPrefix}/analytics`, enhancedAnalyticsRouter);
+app.use(`${config.apiPrefix}/integrations`, integrationsRouter);
+app.use(`${config.apiPrefix}/exports`, exportsRouter);
 app.use(`${config.apiPrefix}/locations`, locationsRouter);
 
 // Health endpoint
