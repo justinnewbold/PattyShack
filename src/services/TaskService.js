@@ -172,6 +172,22 @@ class TaskService {
         return null;
       }
 
+      // Check if task dependencies are met (unless force flag is set)
+      if (!completionData.force) {
+        const readinessCheck = await client.query(`
+          SELECT is_ready, blocking_count
+          FROM task_readiness
+          WHERE task_id = $1
+        `, [id]);
+
+        if (readinessCheck.rows.length > 0 && !readinessCheck.rows[0].is_ready) {
+          await client.query('ROLLBACK');
+          throw new Error(
+            `Cannot complete task: ${readinessCheck.rows[0].blocking_count} prerequisite task(s) must be completed first`
+          );
+        }
+      }
+
       const result = await client.query(`
         UPDATE tasks
         SET
