@@ -45,6 +45,16 @@ const integrationsRouter = require('../routes/integrations');
 const exportsRouter = require('../routes/exports');
 const userManagementRouter = require('../routes/userManagement');
 const authRouter = require('../routes/auth');
+// Phase 9: Notifications & Communication
+const notificationsRouter = require('../routes/notifications');
+const messagingRouter = require('../routes/messaging');
+const announcementsRouter = require('../routes/announcements');
+// Phase 10: Compliance & Audit
+const complianceRouter = require('../routes/compliance');
+// Phase 11: Business Intelligence
+const businessIntelligenceRouter = require('../routes/businessIntelligence');
+// Phase 12: Predictive Analytics
+const predictiveAnalyticsRouter = require('../routes/predictiveAnalytics');
 
 app.use(`${config.apiPrefix}/auth`, authRouter);
 app.use(`${config.apiPrefix}/tasks`, tasksRouter);
@@ -64,6 +74,16 @@ app.use(`${config.apiPrefix}/integrations`, integrationsRouter);
 app.use(`${config.apiPrefix}/exports`, exportsRouter);
 app.use(`${config.apiPrefix}/user-management`, userManagementRouter);
 app.use(`${config.apiPrefix}/locations`, locationsRouter);
+// Phase 9 routes
+app.use(`${config.apiPrefix}/notifications`, notificationsRouter);
+app.use(`${config.apiPrefix}/messaging`, messagingRouter);
+app.use(`${config.apiPrefix}/announcements`, announcementsRouter);
+// Phase 10 routes
+app.use(`${config.apiPrefix}/compliance`, complianceRouter);
+// Phase 11 routes
+app.use(`${config.apiPrefix}/bi`, businessIntelligenceRouter);
+// Phase 12 routes
+app.use(`${config.apiPrefix}/ml`, predictiveAnalyticsRouter);
 
 // Health endpoint
 app.get('/health', (req, res) => {
