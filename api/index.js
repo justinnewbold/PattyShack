@@ -34,6 +34,9 @@ const integrationsRouter = require('../src/routes/integrations');
 const exportsRouter = require('../src/routes/exports');
 const userManagementRouter = require('../src/routes/userManagement');
 const authRouter = require('../src/routes/auth');
+const notificationsRouter = require('../src/routes/notifications');
+const messagingRouter = require('../src/routes/messaging');
+const announcementsRouter = require('../src/routes/announcements');
 
 app.use(`${config.apiPrefix}/auth`, authRouter);
 app.use(`${config.apiPrefix}/tasks`, tasksRouter);
@@ -53,6 +56,9 @@ app.use(`${config.apiPrefix}/integrations`, integrationsRouter);
 app.use(`${config.apiPrefix}/exports`, exportsRouter);
 app.use(`${config.apiPrefix}/user-management`, userManagementRouter);
 app.use(`${config.apiPrefix}/locations`, locationsRouter);
+app.use(`${config.apiPrefix}/notifications`, notificationsRouter);
+app.use(`${config.apiPrefix}/messaging`, messagingRouter);
+app.use(`${config.apiPrefix}/announcements`, announcementsRouter);
 
 // Health endpoint
 app.get('/health', (req, res) => {
