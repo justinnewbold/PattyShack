@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { Menu, X, User, LogOut, Search, Settings } from 'lucide-react';
 import GlobalSearch from './GlobalSearch';
+import NotificationCenter from './NotificationCenter';
 
 const Navbar = ({ toggleSidebar }) => {
   const { user, logout } = useAuth();
@@ -48,6 +49,9 @@ const Navbar = ({ toggleSidebar }) => {
           >
             <Search className="h-6 w-6 text-gray-600" />
           </button>
+
+          {/* Notification Center */}
+          <NotificationCenter />
 
           <div className="flex items-center space-x-2 px-3 py-2 rounded-md bg-gray-50">
             <User className="h-5 w-5 text-gray-600" />
