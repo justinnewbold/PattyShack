@@ -55,6 +55,10 @@ const complianceRouter = require('../routes/compliance');
 const businessIntelligenceRouter = require('../routes/businessIntelligence');
 // Phase 12: Predictive Analytics
 const predictiveAnalyticsRouter = require('../routes/predictiveAnalytics');
+// Phase 13: Real-time WebSocket
+const realtimeRouter = require('../routes/realtime');
+// Phase 14: Background Jobs
+const jobsRouter = require('../routes/jobs');
 
 app.use(`${config.apiPrefix}/auth`, authRouter);
 app.use(`${config.apiPrefix}/tasks`, tasksRouter);
@@ -84,6 +88,10 @@ app.use(`${config.apiPrefix}/compliance`, complianceRouter);
 app.use(`${config.apiPrefix}/bi`, businessIntelligenceRouter);
 // Phase 12 routes
 app.use(`${config.apiPrefix}/ml`, predictiveAnalyticsRouter);
+// Phase 13 routes
+app.use(`${config.apiPrefix}/realtime`, realtimeRouter);
+// Phase 14 routes
+app.use(`${config.apiPrefix}/jobs`, jobsRouter);
 
 // Health endpoint
 app.get('/health', (req, res) => {
