@@ -5,7 +5,7 @@ import { analyticsService } from '../services/analyticsService';
 import { tasksService } from '../services/tasksService';
 import { temperaturesService } from '../services/temperaturesService';
 import { inventoryService } from '../services/inventoryService';
-import { CheckCircle, Clock, AlertTriangle, Package, TrendingUp, Users, DollarSign } from 'lucide-react';
+import { CheckCircle, Clock, AlertTriangle, Package, TrendingUp, Users, DollarSign, Plus, Thermometer, ClipboardList, Calendar, MapPin, Settings } from 'lucide-react';
 
 const Dashboard = () => {
   const navigate = useNavigate();
@@ -241,37 +241,145 @@ const Dashboard = () => {
           </div>
         </div>
 
-        {/* Quick Actions */}
-        <div className="bg-white rounded-lg shadow p-6">
-          <h2 className="text-xl font-semibold text-gray-900 mb-4">Quick Actions</h2>
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
+        {/* Enhanced Quick Actions */}
+        <div className="bg-gradient-to-br from-white to-gray-50 rounded-xl shadow-lg p-6 border border-gray-100">
+          <div className="flex items-center justify-between mb-6">
+            <div>
+              <h2 className="text-2xl font-bold text-gray-900">Quick Actions</h2>
+              <p className="text-sm text-gray-600 mt-1">Common tasks for faster workflows</p>
+            </div>
+            <div className="bg-blue-100 p-2 rounded-lg">
+              <Plus className="h-6 w-6 text-blue-600" />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+            {/* Create Task */}
             <button
               onClick={() => handleQuickAction('Tasks', '/tasks')}
-              className="flex items-center justify-center gap-2 px-4 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors transform hover:scale-105 active:scale-95"
+              className="group bg-white border-2 border-blue-100 hover:border-blue-500 rounded-xl p-4 transition-all duration-200 hover:shadow-md hover:-translate-y-1"
             >
-              <CheckCircle className="h-5 w-5" />
-              <span>New Task</span>
+              <div className="flex items-start gap-3">
+                <div className="bg-blue-100 group-hover:bg-blue-500 p-2.5 rounded-lg transition-colors">
+                  <Plus className="h-5 w-5 text-blue-600 group-hover:text-white transition-colors" />
+                </div>
+                <div className="text-left flex-1">
+                  <h3 className="font-semibold text-gray-900 group-hover:text-blue-600 transition-colors">New Task</h3>
+                  <p className="text-xs text-gray-500 mt-1">Create a new task</p>
+                </div>
+              </div>
             </button>
+
+            {/* Log Temperature */}
             <button
               onClick={() => handleQuickAction('Temperature Log', '/temperatures')}
-              className="flex items-center justify-center gap-2 px-4 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors transform hover:scale-105 active:scale-95"
+              className="group bg-white border-2 border-green-100 hover:border-green-500 rounded-xl p-4 transition-all duration-200 hover:shadow-md hover:-translate-y-1"
             >
-              <TrendingUp className="h-5 w-5" />
-              <span>Log Temperature</span>
+              <div className="flex items-start gap-3">
+                <div className="bg-green-100 group-hover:bg-green-500 p-2.5 rounded-lg transition-colors">
+                  <Thermometer className="h-5 w-5 text-green-600 group-hover:text-white transition-colors" />
+                </div>
+                <div className="text-left flex-1">
+                  <h3 className="font-semibold text-gray-900 group-hover:text-green-600 transition-colors">Log Temp</h3>
+                  <p className="text-xs text-gray-500 mt-1">Record temperature</p>
+                </div>
+              </div>
             </button>
+
+            {/* Count Inventory */}
             <button
-              onClick={() => handleQuickAction('Inventory', '/inventory')}
-              className="flex items-center justify-center gap-2 px-4 py-3 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors transform hover:scale-105 active:scale-95"
+              onClick={() => handleQuickAction('Inventory Count', '/inventory')}
+              className="group bg-white border-2 border-purple-100 hover:border-purple-500 rounded-xl p-4 transition-all duration-200 hover:shadow-md hover:-translate-y-1"
             >
-              <Package className="h-5 w-5" />
-              <span>Count Inventory</span>
+              <div className="flex items-start gap-3">
+                <div className="bg-purple-100 group-hover:bg-purple-500 p-2.5 rounded-lg transition-colors">
+                  <Package className="h-5 w-5 text-purple-600 group-hover:text-white transition-colors" />
+                </div>
+                <div className="text-left flex-1">
+                  <h3 className="font-semibold text-gray-900 group-hover:text-purple-600 transition-colors">Count Stock</h3>
+                  <p className="text-xs text-gray-500 mt-1">Update inventory</p>
+                </div>
+              </div>
             </button>
+
+            {/* View Analytics */}
             <button
               onClick={() => handleQuickAction('Analytics', '/analytics')}
-              className="flex items-center justify-center gap-2 px-4 py-3 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors transform hover:scale-105 active:scale-95"
+              className="group bg-white border-2 border-indigo-100 hover:border-indigo-500 rounded-xl p-4 transition-all duration-200 hover:shadow-md hover:-translate-y-1"
             >
-              <DollarSign className="h-5 w-5" />
-              <span>View Reports</span>
+              <div className="flex items-start gap-3">
+                <div className="bg-indigo-100 group-hover:bg-indigo-500 p-2.5 rounded-lg transition-colors">
+                  <TrendingUp className="h-5 w-5 text-indigo-600 group-hover:text-white transition-colors" />
+                </div>
+                <div className="text-left flex-1">
+                  <h3 className="font-semibold text-gray-900 group-hover:text-indigo-600 transition-colors">Analytics</h3>
+                  <p className="text-xs text-gray-500 mt-1">View reports</p>
+                </div>
+              </div>
+            </button>
+
+            {/* View Schedules */}
+            <button
+              onClick={() => handleQuickAction('Schedules', '/schedules')}
+              className="group bg-white border-2 border-orange-100 hover:border-orange-500 rounded-xl p-4 transition-all duration-200 hover:shadow-md hover:-translate-y-1"
+            >
+              <div className="flex items-start gap-3">
+                <div className="bg-orange-100 group-hover:bg-orange-500 p-2.5 rounded-lg transition-colors">
+                  <Calendar className="h-5 w-5 text-orange-600 group-hover:text-white transition-colors" />
+                </div>
+                <div className="text-left flex-1">
+                  <h3 className="font-semibold text-gray-900 group-hover:text-orange-600 transition-colors">Schedules</h3>
+                  <p className="text-xs text-gray-500 mt-1">Manage shifts</p>
+                </div>
+              </div>
+            </button>
+
+            {/* Manage Locations */}
+            <button
+              onClick={() => handleQuickAction('Locations', '/locations')}
+              className="group bg-white border-2 border-teal-100 hover:border-teal-500 rounded-xl p-4 transition-all duration-200 hover:shadow-md hover:-translate-y-1"
+            >
+              <div className="flex items-start gap-3">
+                <div className="bg-teal-100 group-hover:bg-teal-500 p-2.5 rounded-lg transition-colors">
+                  <MapPin className="h-5 w-5 text-teal-600 group-hover:text-white transition-colors" />
+                </div>
+                <div className="text-left flex-1">
+                  <h3 className="font-semibold text-gray-900 group-hover:text-teal-600 transition-colors">Locations</h3>
+                  <p className="text-xs text-gray-500 mt-1">Manage sites</p>
+                </div>
+              </div>
+            </button>
+
+            {/* View All Tasks */}
+            <button
+              onClick={() => handleQuickAction('All Tasks', '/tasks')}
+              className="group bg-white border-2 border-cyan-100 hover:border-cyan-500 rounded-xl p-4 transition-all duration-200 hover:shadow-md hover:-translate-y-1"
+            >
+              <div className="flex items-start gap-3">
+                <div className="bg-cyan-100 group-hover:bg-cyan-500 p-2.5 rounded-lg transition-colors">
+                  <ClipboardList className="h-5 w-5 text-cyan-600 group-hover:text-white transition-colors" />
+                </div>
+                <div className="text-left flex-1">
+                  <h3 className="font-semibold text-gray-900 group-hover:text-cyan-600 transition-colors">All Tasks</h3>
+                  <p className="text-xs text-gray-500 mt-1">View all tasks</p>
+                </div>
+              </div>
+            </button>
+
+            {/* Settings */}
+            <button
+              onClick={() => handleQuickAction('Settings', '/settings')}
+              className="group bg-white border-2 border-gray-200 hover:border-gray-500 rounded-xl p-4 transition-all duration-200 hover:shadow-md hover:-translate-y-1"
+            >
+              <div className="flex items-start gap-3">
+                <div className="bg-gray-100 group-hover:bg-gray-500 p-2.5 rounded-lg transition-colors">
+                  <Settings className="h-5 w-5 text-gray-600 group-hover:text-white transition-colors" />
+                </div>
+                <div className="text-left flex-1">
+                  <h3 className="font-semibold text-gray-900 group-hover:text-gray-600 transition-colors">Settings</h3>
+                  <p className="text-xs text-gray-500 mt-1">Preferences</p>
+                </div>
+              </div>
             </button>
           </div>
         </div>
