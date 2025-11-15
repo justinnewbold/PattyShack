@@ -3,6 +3,7 @@ import toast from 'react-hot-toast';
 import { tasksService } from '../services/tasksService';
 import { CheckCircle, Clock, AlertCircle, Plus, X, Filter, Trash2, Download } from 'lucide-react';
 import ExportButton from '../components/ExportButton';
+import FilterPanel from '../components/FilterPanel';
 import { exportTasks } from '../utils/exportUtils';
 
 const Tasks = () => {
@@ -14,7 +15,14 @@ const Tasks = () => {
   const [filters, setFilters] = useState({
     status: '',
     priority: '',
-    location: ''
+    location: '',
+    dateFrom: '',
+    dateTo: '',
+    search: ''
+  });
+  const [filterPresets, setFilterPresets] = useState(() => {
+    const saved = localStorage.getItem('task_filter_presets');
+    return saved ? JSON.parse(saved) : [];
   });
   const [newTask, setNewTask] = useState({
     title: '',
@@ -35,14 +43,39 @@ const Tasks = () => {
       setLoading(true);
       setError(null);
 
-      // Build filter params
+      // Build filter params for backend
       const params = {};
       if (filters.status) params.status = filters.status;
       if (filters.priority) params.priority = filters.priority;
       if (filters.location) params.locationId = filters.location;
 
       const response = await tasksService.getTasks(params);
-      setTasks(response.data || response || []);
+      let tasksData = response.data || response || [];
+
+      // Apply client-side filters
+      if (filters.search) {
+        const searchLower = filters.search.toLowerCase();
+        tasksData = tasksData.filter(task =>
+          task.title?.toLowerCase().includes(searchLower) ||
+          task.description?.toLowerCase().includes(searchLower)
+        );
+      }
+
+      if (filters.dateFrom) {
+        const fromDate = new Date(filters.dateFrom);
+        tasksData = tasksData.filter(task =>
+          task.dueDate && new Date(task.dueDate) >= fromDate
+        );
+      }
+
+      if (filters.dateTo) {
+        const toDate = new Date(filters.dateTo);
+        tasksData = tasksData.filter(task =>
+          task.dueDate && new Date(task.dueDate) <= toDate
+        );
+      }
+
+      setTasks(tasksData);
     } catch (err) {
       const errorMsg = err.message || 'Failed to load tasks';
       setError(errorMsg);
@@ -143,6 +176,41 @@ const Tasks = () => {
     exportTasks(selectedTasksData, format);
   };
 
+  const handleFilterChange = (key, value) => {
+    setFilters(prev => ({ ...prev, [key]: value }));
+  };
+
+  const handleResetFilters = () => {
+    setFilters({
+      status: '',
+      priority: '',
+      location: '',
+      dateFrom: '',
+      dateTo: '',
+      search: ''
+    });
+  };
+
+  const handleSavePreset = (preset) => {
+    const newPreset = {
+      ...preset,
+      id: Date.now().toString()
+    };
+    const updated = [...filterPresets, newPreset];
+    setFilterPresets(updated);
+    localStorage.setItem('task_filter_presets', JSON.stringify(updated));
+  };
+
+  const handleLoadPreset = (filters) => {
+    setFilters(filters);
+  };
+
+  const handleDeletePreset = (presetId) => {
+    const updated = filterPresets.filter(p => p.id !== presetId);
+    setFilterPresets(updated);
+    localStorage.setItem('task_filter_presets', JSON.stringify(updated));
+  };
+
   const getStatusBadgeColor = (status) => {
     const colors = {
       pending: 'bg-yellow-100 text-yellow-800 border-yellow-200',
@@ -227,52 +295,17 @@ const Tasks = () => {
           </div>
         </div>
 
-        {/* Filters */}
-        <div className="bg-white rounded-lg shadow p-6 mb-6">
-          <div className="flex items-center gap-2 mb-4">
-            <Filter className="h-5 w-5 text-gray-600" />
-            <h2 className="text-lg font-semibold text-gray-900">Filters</h2>
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Status</label>
-              <select
-                value={filters.status}
-                onChange={(e) => setFilters({ ...filters, status: e.target.value })}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              >
-                <option value="">All Statuses</option>
-                <option value="pending">Pending</option>
-                <option value="in-progress">In Progress</option>
-                <option value="completed">Completed</option>
-                <option value="cancelled">Cancelled</option>
-              </select>
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Priority</label>
-              <select
-                value={filters.priority}
-                onChange={(e) => setFilters({ ...filters, priority: e.target.value })}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              >
-                <option value="">All Priorities</option>
-                <option value="low">Low</option>
-                <option value="medium">Medium</option>
-                <option value="high">High</option>
-                <option value="urgent">Urgent</option>
-              </select>
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Location</label>
-              <input
-                type="text"
-                placeholder="Location ID"
-                value={filters.location}
-                onChange={(e) => setFilters({ ...filters, location: e.target.value })}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              />
-            </div>
-          </div>
+        {/* Advanced Filters */}
+        <div className="mb-6">
+          <FilterPanel
+            filters={filters}
+            onFilterChange={handleFilterChange}
+            onReset={handleResetFilters}
+            savedPresets={filterPresets}
+            onSavePreset={handleSavePreset}
+            onDeletePreset={handleDeletePreset}
+            onLoadPreset={handleLoadPreset}
+          />
         </div>
 
         {/* Error Display */}
