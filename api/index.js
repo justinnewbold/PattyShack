@@ -7,7 +7,6 @@ const express = require('express');
 const cors = require('cors');
 const config = require('../src/config/app');
 const { errorHandler, notFound } = require('../src/middleware/errorHandler');
-const { initializePool } = require('../src/database/pool');
 
 const app = express();
 
@@ -15,13 +14,6 @@ const app = express();
 app.use(cors(config.cors));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
-
-// Initialize database pool (happens once on cold start)
-let poolInitialized = false;
-if (!poolInitialized) {
-  initializePool();
-  poolInitialized = true;
-}
 
 // API routes
 const tasksRouter = require('../src/routes/tasks');
@@ -42,6 +34,9 @@ const integrationsRouter = require('../src/routes/integrations');
 const exportsRouter = require('../src/routes/exports');
 const userManagementRouter = require('../src/routes/userManagement');
 const authRouter = require('../src/routes/auth');
+const notificationsRouter = require('../src/routes/notifications');
+const messagingRouter = require('../src/routes/messaging');
+const announcementsRouter = require('../src/routes/announcements');
 
 app.use(`${config.apiPrefix}/auth`, authRouter);
 app.use(`${config.apiPrefix}/tasks`, tasksRouter);
@@ -61,6 +56,9 @@ app.use(`${config.apiPrefix}/integrations`, integrationsRouter);
 app.use(`${config.apiPrefix}/exports`, exportsRouter);
 app.use(`${config.apiPrefix}/user-management`, userManagementRouter);
 app.use(`${config.apiPrefix}/locations`, locationsRouter);
+app.use(`${config.apiPrefix}/notifications`, notificationsRouter);
+app.use(`${config.apiPrefix}/messaging`, messagingRouter);
+app.use(`${config.apiPrefix}/announcements`, announcementsRouter);
 
 // Health endpoint
 app.get('/health', (req, res) => {
