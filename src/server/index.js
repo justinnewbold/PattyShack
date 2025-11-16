@@ -59,6 +59,16 @@ const predictiveAnalyticsRouter = require('../routes/predictiveAnalytics');
 const realtimeRouter = require('../routes/realtime');
 // Phase 14: Background Jobs
 const jobsRouter = require('../routes/jobs');
+// Phase 18: Menu Management
+const menuManagementRouter = require('../routes/menuManagement');
+// Phase 19: Customer Portal
+const customerPortalRouter = require('../routes/customerPortal');
+// Phase 20: Financial Management
+const financialRouter = require('../routes/financial');
+// Phase 21: Marketing Automation
+const marketingRouter = require('../routes/marketing');
+// Phase 22: Franchise Management
+const franchiseRouter = require('../routes/franchise');
 
 app.use(`${config.apiPrefix}/auth`, authRouter);
 app.use(`${config.apiPrefix}/tasks`, tasksRouter);
@@ -92,6 +102,16 @@ app.use(`${config.apiPrefix}/ml`, predictiveAnalyticsRouter);
 app.use(`${config.apiPrefix}/realtime`, realtimeRouter);
 // Phase 14 routes
 app.use(`${config.apiPrefix}/jobs`, jobsRouter);
+// Phase 18 routes
+app.use(`${config.apiPrefix}/menu`, menuManagementRouter);
+// Phase 19 routes
+app.use(`${config.apiPrefix}/customers`, customerPortalRouter);
+// Phase 20 routes
+app.use(`${config.apiPrefix}/financial`, financialRouter);
+// Phase 21 routes
+app.use(`${config.apiPrefix}/marketing`, marketingRouter);
+// Phase 22 routes
+app.use(`${config.apiPrefix}/franchise`, franchiseRouter);
 
 // Health endpoint
 app.get('/health', (req, res) => {
