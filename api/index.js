@@ -60,15 +60,18 @@ app.use(`${config.apiPrefix}/notifications`, notificationsRouter);
 app.use(`${config.apiPrefix}/messaging`, messagingRouter);
 app.use(`${config.apiPrefix}/announcements`, announcementsRouter);
 
-// Health endpoint
-app.get('/health', (req, res) => {
+// Health endpoint (root and API namespace)
+const healthHandler = (req, res) => {
   res.json({
     status: 'healthy',
     timestamp: new Date(),
     environment: config.env,
     serverless: true
   });
-});
+};
+
+app.get('/health', healthHandler);
+app.get(`${config.apiPrefix}/health`, healthHandler);
 
 // Errors
 app.use(notFound);
