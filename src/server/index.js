@@ -113,15 +113,18 @@ app.use(`${config.apiPrefix}/marketing`, marketingRouter);
 // Phase 22 routes
 app.use(`${config.apiPrefix}/franchise`, franchiseRouter);
 
-// Health endpoint
-app.get('/health', (req, res) => {
+// Health endpoint (both root and API namespace)
+const healthHandler = (req, res) => {
   res.json({
     status: 'healthy',
     timestamp: new Date(),
     uptime: process.uptime(),
     environment: config.env
   });
-});
+};
+
+app.get('/health', healthHandler);
+app.get(`${config.apiPrefix}/health`, healthHandler);
 
 // API info
 app.get('/api', (req, res) => {
