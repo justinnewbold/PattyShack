@@ -13,7 +13,6 @@ const { initializePool, testConnection, closePool } = require('../database/pool'
 const { runMigrations } = require('../database/migrate');
 const { seedDatabase } = require('../database/seeds');
 const { autoSeedDemoUsers } = require('../../scripts/autoSeedOnStartup');
-const authRouter = require('../routes/auth');
 
 const app = express();
 
@@ -44,7 +43,6 @@ const locationsRouter = require('../routes/locations');
 const integrationsRouter = require('../routes/integrations');
 const exportsRouter = require('../routes/exports');
 const userManagementRouter = require('../routes/userManagement');
-const authRouter = require('../routes/auth');
 // Phase 9: Notifications & Communication
 const notificationsRouter = require('../routes/notifications');
 const messagingRouter = require('../routes/messaging');
@@ -113,15 +111,18 @@ app.use(`${config.apiPrefix}/marketing`, marketingRouter);
 // Phase 22 routes
 app.use(`${config.apiPrefix}/franchise`, franchiseRouter);
 
-// Health endpoint
-app.get('/health', (req, res) => {
+// Health endpoint (both root and API namespace)
+const healthHandler = (req, res) => {
   res.json({
     status: 'healthy',
-    timestamp: new Date(),
+    timestamp: new Date().toISOString(),
     uptime: process.uptime(),
     environment: config.env
   });
-});
+};
+
+app.get('/health', healthHandler);
+app.get(`${config.apiPrefix}/health`, healthHandler);
 
 // API info
 app.get('/api', (req, res) => {
