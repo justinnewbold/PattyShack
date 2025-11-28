@@ -26,6 +26,7 @@ const frontendDistPath = path.resolve(__dirname, '../../frontend/dist');
 app.use(express.static(frontendDistPath));
 
 // API routes
+const authRouter = require('../routes/auth');
 const tasksRouter = require('../routes/tasks');
 const taskTemplatesRouter = require('../routes/taskTemplates');
 const taskDependenciesRouter = require('../routes/taskDependencies');
